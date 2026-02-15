@@ -45,84 +45,167 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Catppuccin accent palette — exposed as Tailwind colors */
+  --color-ctp-rosewater: var(--ctp-rosewater);
+  --color-ctp-flamingo: var(--ctp-flamingo);
+  --color-ctp-pink: var(--ctp-pink);
+  --color-ctp-mauve: var(--ctp-mauve);
+  --color-ctp-red: var(--ctp-red);
+  --color-ctp-maroon: var(--ctp-maroon);
+  --color-ctp-peach: var(--ctp-peach);
+  --color-ctp-yellow: var(--ctp-yellow);
+  --color-ctp-green: var(--ctp-green);
+  --color-ctp-teal: var(--ctp-teal);
+  --color-ctp-sky: var(--ctp-sky);
+  --color-ctp-sapphire: var(--ctp-sapphire);
+  --color-ctp-blue: var(--ctp-blue);
+  --color-ctp-lavender: var(--ctp-lavender);
+  --color-ctp-text: var(--ctp-text);
+  --color-ctp-subtext1: var(--ctp-subtext1);
+  --color-ctp-overlay0: var(--ctp-overlay0);
+  --color-ctp-surface0: var(--ctp-surface0);
+  --color-ctp-surface1: var(--ctp-surface1);
+  --color-ctp-base: var(--ctp-base);
+  --color-ctp-mantle: var(--ctp-mantle);
+  --color-ctp-crust: var(--ctp-crust);
 }
 
+/* ─── Catppuccin Latte (light) ────────────────────────────────────────────── */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* Catppuccin Latte accent palette */
+  --ctp-rosewater: #dc8a78;
+  --ctp-flamingo:  #dd7878;
+  --ctp-pink:      #ea76cb;
+  --ctp-mauve:     #8839ef;
+  --ctp-red:       #d20f39;
+  --ctp-maroon:    #e64553;
+  --ctp-peach:     #fe640b;
+  --ctp-yellow:    #df8e1d;
+  --ctp-green:     #40a02b;
+  --ctp-teal:      #179299;
+  --ctp-sky:       #04a5e5;
+  --ctp-sapphire:  #209fb5;
+  --ctp-blue:      #1e66f5;
+  --ctp-lavender:  #7287fd;
+  --ctp-text:      #4c4f69;
+  --ctp-subtext1:  #5c5f77;
+  --ctp-overlay0:  #9ca0b0;
+  --ctp-surface0:  #ccd0da;
+  --ctp-surface1:  #bcc0cc;
+  --ctp-base:      #eff1f5;
+  --ctp-mantle:    #e6e9ef;
+  --ctp-crust:     #dce0e8;
+
+  /* shadcn semantic tokens — mapped from Latte */
+  --background:          #eff1f5; /* Base */
+  --foreground:          #4c4f69; /* Text */
+  --card:                #e6e9ef; /* Mantle */
+  --card-foreground:     #4c4f69; /* Text */
+  --popover:             #eff1f5; /* Base */
+  --popover-foreground:  #4c4f69; /* Text */
+  --primary:             var(--accent-light, #8839ef); /* Accent (default Mauve) */
+  --primary-foreground:  #eff1f5; /* Base */
+  --secondary:           #ccd0da; /* Surface0 */
+  --secondary-foreground:#4c4f69; /* Text */
+  --muted:               #e6e9ef; /* Mantle */
+  --muted-foreground:    #8c8fa1; /* Overlay1 */
+  --accent:              #dce0e8; /* Crust */
+  --accent-foreground:   #4c4f69; /* Text */
+  --destructive:         #d20f39; /* Red */
+  --border:              #ccd0da; /* Surface0 */
+  --input:               #bcc0cc; /* Surface1 */
+  --ring:                var(--accent-light, #8839ef); /* Accent */
+
+  /* Charts — Catppuccin accent rainbow */
+  --chart-1: var(--accent-light, #8839ef); /* Accent */
+  --chart-2: #209fb5; /* Sapphire */
+  --chart-3: #40a02b; /* Green */
+  --chart-4: #fe640b; /* Peach */
+  --chart-5: #ea76cb; /* Pink */
+
+  /* Sidebar */
+  --sidebar:                   #dce0e8; /* Crust */
+  --sidebar-foreground:        #4c4f69; /* Text */
+  --sidebar-primary:           var(--accent-light, #8839ef); /* Accent */
+  --sidebar-primary-foreground:#eff1f5; /* Base */
+  --sidebar-accent:            #e6e9ef; /* Mantle */
+  --sidebar-accent-foreground: #4c4f69; /* Text */
+  --sidebar-border:            #ccd0da; /* Surface0 */
+  --sidebar-ring:              var(--accent-light, #8839ef); /* Accent */
 }
 
+/* ─── Catppuccin Noir (dark) ──────────────────────────────────────────────── */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Catppuccin Noir accent palette */
+  --ctp-rosewater: #f5e0dc;
+  --ctp-flamingo:  #f2cdcd;
+  --ctp-pink:      #f5c2e7;
+  --ctp-mauve:     #cba6f7;
+  --ctp-red:       #f38ba8;
+  --ctp-maroon:    #eba0ac;
+  --ctp-peach:     #fab387;
+  --ctp-yellow:    #f9e2af;
+  --ctp-green:     #a6e3a1;
+  --ctp-teal:      #94e2d5;
+  --ctp-sky:       #89dceb;
+  --ctp-sapphire:  #74c7ec;
+  --ctp-blue:      #89b4fa;
+  --ctp-lavender:  #b4befe;
+  --ctp-text:      #cdd6f4;
+  --ctp-subtext1:  #bac2de;
+  --ctp-overlay0:  #6c7086;
+  --ctp-surface0:  #363236;
+  --ctp-surface1:  #4a474b;
+  --ctp-base:      #221f22;
+  --ctp-mantle:    #1b181b;
+  --ctp-crust:     #141114;
+
+  /* shadcn semantic tokens — mapped from Noir */
+  --background:          #221f22; /* Base */
+  --foreground:          #cdd6f4; /* Text */
+  --card:                #1b181b; /* Mantle */
+  --card-foreground:     #cdd6f4; /* Text */
+  --popover:             #363236; /* Surface0 */
+  --popover-foreground:  #cdd6f4; /* Text */
+  --primary:             var(--accent-dark, #cba6f7); /* Accent (default Mauve) */
+  --primary-foreground:  #141114; /* Crust */
+  --secondary:           #363236; /* Surface0 */
+  --secondary-foreground:#cdd6f4; /* Text */
+  --muted:               #363236; /* Surface0 */
+  --muted-foreground:    #9399b2; /* Overlay2 */
+  --accent:              #4a474b; /* Surface1 */
+  --accent-foreground:   #cdd6f4; /* Text */
+  --destructive:         #f38ba8; /* Red */
+  --border:              #4a474b; /* Surface1 */
+  --input:               #4a474b; /* Surface1 */
+  --ring:                var(--accent-dark, #cba6f7); /* Accent */
+
+  /* Charts */
+  --chart-1: var(--accent-dark, #cba6f7); /* Accent */
+  --chart-2: #74c7ec; /* Sapphire */
+  --chart-3: #a6e3a1; /* Green */
+  --chart-4: #fab387; /* Peach */
+  --chart-5: #f5c2e7; /* Pink */
+
+  /* Sidebar */
+  --sidebar:                   #1b181b; /* Mantle */
+  --sidebar-foreground:        #cdd6f4; /* Text */
+  --sidebar-primary:           var(--accent-dark, #cba6f7); /* Accent */
+  --sidebar-primary-foreground:#141114; /* Crust */
+  --sidebar-accent:            #363236; /* Surface0 */
+  --sidebar-accent-foreground: #cdd6f4; /* Text */
+  --sidebar-border:            #4a474b; /* Surface1 */
+  --sidebar-ring:              var(--accent-dark, #cba6f7); /* Accent */
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
     @apply bg-background text-foreground;
   }
 }

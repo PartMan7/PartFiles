@@ -20,7 +20,8 @@ export const authConfig: NextAuthConfig = {
 			return session;
 		},
 		authorized({ auth, request: { nextUrl } }) {
-			const isLoggedIn = !!auth?.user;
+			const role = auth?.user?.role as string | undefined;
+			const isLoggedIn = !!auth?.user && !!role;
 			const pathname = nextUrl.pathname;
 
 			// Public paths (cron is protected by its own secret header check)
@@ -31,8 +32,6 @@ export const authConfig: NextAuthConfig = {
 			if (!isLoggedIn) {
 				return false; // Redirect to login
 			}
-
-			const role = auth?.user?.role as string;
 
 			// Admin-only routes
 			if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {

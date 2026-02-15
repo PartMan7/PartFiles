@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GET } from '@/app/api/admin/content/route';
 import { GET as GET_ID, PUT, DELETE } from '@/app/api/admin/content/[id]/route';
-import { mockAdmin, mockUploader, mockUnauthenticated, mockPrisma, mockStorage } from '../../setup';
+import { mockAdmin, mockUploader, mockUnauthenticated, mockPrisma, mockStorage, mockPreview } from '../../setup';
 import { jsonRequest, parseResponse } from '../../helpers';
 import { NextRequest } from 'next/server';
 
@@ -137,6 +137,7 @@ describe('DELETE /api/admin/content/[id]', () => {
 			id: 'c1',
 			filename: 'test.pdf',
 			storagePath: 'mock/path.pdf',
+			previewPath: null,
 		});
 		const req = new NextRequest('http://localhost:3000/api/admin/content/c1', { method: 'DELETE' });
 		const { status, body } = await parseResponse(await DELETE(req, { params: Promise.resolve({ id: 'c1' }) }));
@@ -144,5 +145,20 @@ describe('DELETE /api/admin/content/[id]', () => {
 		expect(body?.success).toBe(true);
 		expect(mockStorage.deleteFile).toHaveBeenCalledWith('mock/path.pdf');
 		expect(mockPrisma.content.delete).toHaveBeenCalledWith({ where: { id: 'c1' } });
+	});
+
+	it('deletes preview file when deleting content with preview', async () => {
+		mockPrisma.content.findUnique.mockResolvedValue({
+			id: 'c2',
+			filename: 'photo.jpg',
+			storagePath: 'mock/photo.jpg',
+			previewPath: 'mock/preview-photo.jpg',
+		});
+		const req = new NextRequest('http://localhost:3000/api/admin/content/c2', { method: 'DELETE' });
+		const { status, body } = await parseResponse(await DELETE(req, { params: Promise.resolve({ id: 'c2' }) }));
+		expect(status).toBe(200);
+		expect(body?.success).toBe(true);
+		expect(mockStorage.deleteFile).toHaveBeenCalledWith('mock/photo.jpg');
+		expect(mockPreview.deletePreview).toHaveBeenCalledWith('mock/preview-photo.jpg');
 	});
 });

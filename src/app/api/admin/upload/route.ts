@@ -14,6 +14,7 @@ import {
 	StorageLimitError,
 } from '@/lib/validation';
 import { saveFile, deleteFile } from '@/lib/storage';
+import { generateAndSavePreview, deletePreview } from '@/lib/preview';
 import { v4 as uuidv4 } from 'uuid';
 import { lookup } from 'mime-types';
 import { getBaseUrl } from '@/lib/config';
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
 	}
 
 	let storagePath: string | null = null;
+	let previewPath: string | null = null;
 
 	try {
 		const formData = await req.formData();
@@ -108,12 +110,16 @@ export async function POST(req: NextRequest) {
 		const buffer = Buffer.from(await file.arrayBuffer());
 		storagePath = await saveFile(buffer, storedFilename, subDir);
 
+		// Generate low-res preview for images (best-effort, non-blocking for upload success)
+		previewPath = await generateAndSavePreview(buffer, mimeType, storedFilename, subDir);
+
 		// Atomic: re-check storage limit + create DB record in a transaction
 		const content = await createContentWithStorageCheck(userId, role, {
 			id: contentId,
 			filename: sanitized,
 			originalFilename: originalName,
 			storagePath,
+			previewPath,
 			directory: directoryName || null,
 			fileSize: file.size,
 			fileExtension: extResult.extension,
@@ -145,7 +151,7 @@ export async function POST(req: NextRequest) {
 			},
 		});
 	} catch (error) {
-		// Clean up the file if it was saved but the DB transaction failed
+		// Clean up files if they were saved but the DB transaction failed
 		if (storagePath) {
 			try {
 				await deleteFile(storagePath);
@@ -153,6 +159,7 @@ export async function POST(req: NextRequest) {
 				/* best-effort cleanup */
 			}
 		}
+		await deletePreview(previewPath);
 
 		if (error instanceof StorageLimitError) {
 			return NextResponse.json({ error: error.message }, { status: 400 });

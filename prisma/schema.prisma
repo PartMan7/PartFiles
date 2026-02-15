@@ -21,6 +21,7 @@ model Content {
   filename         String
   originalFilename String
   storagePath      String
+  previewPath      String?
   directory        String?
   fileSize         Int
   fileExtension    String

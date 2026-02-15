@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { POST } from '@/app/api/admin/upload/route';
-import { mockAdmin, mockUploader, mockGuest, mockUnauthenticated, mockPrisma } from '../../setup';
+import { mockAdmin, mockUploader, mockGuest, mockUnauthenticated, mockPrisma, mockPreview } from '../../setup';
 import { uploadRequest, parseResponse } from '../../helpers';
 
 describe('POST /api/admin/upload', () => {
@@ -92,6 +92,42 @@ describe('POST /api/admin/upload', () => {
 			expect(content.url).toMatch(/^https?:\/\//);
 			expect(content.shortUrl).toMatch(/^https?:\/\//);
 			expect(content.shortUrl).toContain('/s/my-link');
+		});
+	});
+
+	describe('preview generation', () => {
+		beforeEach(() => {
+			mockAdmin();
+			mockPrisma.content.aggregate.mockResolvedValue({ _sum: { fileSize: 0 }, _count: 0 });
+		});
+
+		it('generates preview for image uploads', async () => {
+			const imageFile = { name: 'photo.jpg', content: 'fake-image-data', type: 'image/jpeg' };
+			const req = uploadRequest('/api/admin/upload', {}, imageFile);
+			const { status } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			expect(mockPreview.generateAndSavePreview).toHaveBeenCalledTimes(1);
+			const callData = mockPrisma.content.create.mock.calls[0][0].data;
+			expect(callData.previewPath).toBe('mock/storage/preview-path.jpg');
+		});
+
+		it('stores null previewPath for non-image uploads', async () => {
+			mockPreview.generateAndSavePreview.mockResolvedValue(null);
+			const pdfFile = { name: 'doc.pdf', content: 'fake-pdf-data', type: 'application/pdf' };
+			const req = uploadRequest('/api/admin/upload', {}, pdfFile);
+			const { status } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			const callData = mockPrisma.content.create.mock.calls[0][0].data;
+			expect(callData.previewPath).toBeNull();
+		});
+
+		it('continues upload even if preview generation fails', async () => {
+			mockPreview.generateAndSavePreview.mockResolvedValue(null);
+			const imageFile = { name: 'corrupt.jpg', content: 'corrupt-data', type: 'image/jpeg' };
+			const req = uploadRequest('/api/admin/upload', {}, imageFile);
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			expect(body?.success).toBe(true);
 		});
 	});
 

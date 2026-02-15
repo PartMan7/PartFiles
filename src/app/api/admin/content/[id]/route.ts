@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { isAdmin } from '@/lib/permissions';
 import { deleteFile } from '@/lib/storage';
+import { deletePreview } from '@/lib/preview';
 import { sanitizeFilename, validateShortSlug, checkSlugCollision } from '@/lib/validation';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -110,8 +111,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 		return NextResponse.json({ error: 'Content not found' }, { status: 404 });
 	}
 
-	// Delete file from disk
+	// Delete file and preview from disk
 	await deleteFile(content.storagePath);
+	await deletePreview(content.previewPath);
 
 	// Delete DB record (cascades to ShortSlug records)
 	await prisma.content.delete({ where: { id } });

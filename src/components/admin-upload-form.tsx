@@ -92,9 +92,9 @@ export function AdminUploadForm() {
 	}
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Admin Upload</CardTitle>
+	<Card className="border-primary/20">
+		<CardHeader>
+			<CardTitle className="text-primary">Admin Upload</CardTitle>
 				<CardDescription>Upload files with directory placement and optional permanent storage.</CardDescription>
 			</CardHeader>
 			<CardContent>

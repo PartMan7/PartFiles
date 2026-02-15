@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { deleteFile } from '@/lib/storage';
+import { deletePreview } from '@/lib/preview';
 import { timingSafeEqual } from 'crypto';
 
 function safeCompare(a: string, b: string): boolean {
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
 		for (const item of expired) {
 			try {
 				await deleteFile(item.storagePath);
+				await deletePreview(item.previewPath);
 				await prisma.content.delete({ where: { id: item.id } });
 				deleted++;
 			} catch (error) {

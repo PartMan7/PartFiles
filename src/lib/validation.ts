@@ -207,6 +207,7 @@ export async function createContentWithStorageCheck(
 		filename: string;
 		originalFilename: string;
 		storagePath: string;
+		previewPath?: string | null;
 		directory?: string | null;
 		fileSize: number;
 		fileExtension: string;

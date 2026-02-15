@@ -47,9 +47,9 @@ export function LoginForm() {
 
 	return (
 		<div className="min-h-screen flex items-center justify-center p-4">
-			<Card className="w-full max-w-md">
-				<CardHeader className="text-center">
-					<CardTitle className="text-2xl">CMS Login</CardTitle>
+		<Card className="w-full max-w-md border-primary/25">
+			<CardHeader className="text-center">
+				<CardTitle className="text-2xl text-primary">CMS Login</CardTitle>
 					<CardDescription>Sign in to cms.partman.dev</CardDescription>
 				</CardHeader>
 				<CardContent>

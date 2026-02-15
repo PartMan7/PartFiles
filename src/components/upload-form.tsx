@@ -78,9 +78,9 @@ export function UploadForm({ isAdmin }: UploadFormProps) {
 	const expiryOptions = isAdmin ? ADMIN_EXPIRY_OPTIONS : EXPIRY_OPTIONS;
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Upload File</CardTitle>
+	<Card className="border-primary/20">
+		<CardHeader>
+			<CardTitle className="text-primary">Upload File</CardTitle>
 				<CardDescription>
 					{isAdmin
 						? 'Upload a file with configurable expiry. Admins can set permanent files.'

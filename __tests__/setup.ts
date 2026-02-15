@@ -100,6 +100,16 @@ vi.mock('fs/promises', () => ({
 	unlink: vi.fn().mockResolvedValue(undefined),
 }));
 
+// ─── Mock: @/lib/preview ──────────────────────────────────────────────────────
+export const mockPreview = {
+	isPreviewable: vi.fn((mime: string) => mime.startsWith('image/')),
+	generatePreviewBuffer: vi.fn().mockResolvedValue(Buffer.from('mock-preview-data')),
+	generateAndSavePreview: vi.fn().mockResolvedValue('mock/storage/preview-path.jpg'),
+	deletePreview: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock('@/lib/preview', () => mockPreview);
+
 // ─── Mock: uuid ──────────────────────────────────────────────────────────────
 vi.mock('uuid', () => ({
 	v4: vi.fn(() => '00000000-0000-0000-0000-000000000000'),
@@ -156,4 +166,10 @@ beforeEach(() => {
 
 	// Reset ID mock
 	mockId.generateContentId.mockReset().mockResolvedValue('ab12cd34');
+
+	// Reset preview mocks
+	mockPreview.isPreviewable.mockReset().mockImplementation((mime: string) => mime.startsWith('image/'));
+	mockPreview.generatePreviewBuffer.mockReset().mockResolvedValue(Buffer.from('mock-preview-data'));
+	mockPreview.generateAndSavePreview.mockReset().mockResolvedValue('mock/storage/preview-path.jpg');
+	mockPreview.deletePreview.mockReset().mockResolvedValue(undefined);
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { POST } from '@/app/api/cron/cleanup/route';
-import { mockPrisma, mockStorage } from '../setup';
+import { mockPrisma, mockStorage, mockPreview } from '../setup';
 import { requestWithHeaders, parseResponse } from '../helpers';
 
 describe('POST /api/cron/cleanup', () => {
@@ -33,8 +33,8 @@ describe('POST /api/cron/cleanup', () => {
 
 	it('deletes expired content and files', async () => {
 		const expiredItems = [
-			{ id: 'c1', storagePath: 'path/old1.pdf', expiresAt: new Date(Date.now() - 3600000) },
-			{ id: 'c2', storagePath: 'path/old2.jpg', expiresAt: new Date(Date.now() - 7200000) },
+			{ id: 'c1', storagePath: 'path/old1.pdf', previewPath: null, expiresAt: new Date(Date.now() - 3600000) },
+			{ id: 'c2', storagePath: 'path/old2.jpg', previewPath: 'path/preview-old2.jpg', expiresAt: new Date(Date.now() - 7200000) },
 		];
 		mockPrisma.content.findMany.mockResolvedValue(expiredItems);
 
@@ -51,6 +51,11 @@ describe('POST /api/cron/cleanup', () => {
 		expect(mockStorage.deleteFile).toHaveBeenCalledTimes(2);
 		expect(mockStorage.deleteFile).toHaveBeenCalledWith('path/old1.pdf');
 		expect(mockStorage.deleteFile).toHaveBeenCalledWith('path/old2.jpg');
+
+		// Preview deletion should be called for both items
+		expect(mockPreview.deletePreview).toHaveBeenCalledTimes(2);
+		expect(mockPreview.deletePreview).toHaveBeenCalledWith(null);
+		expect(mockPreview.deletePreview).toHaveBeenCalledWith('path/preview-old2.jpg');
 
 		expect(mockPrisma.content.delete).toHaveBeenCalledTimes(2);
 	});
