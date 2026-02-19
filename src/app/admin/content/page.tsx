@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { Nav } from '@/components/nav';
 import { isAdmin } from '@/lib/permissions';
 import { ContentManager } from '@/components/content-table';
+import { getContentUrl } from '@/lib/config';
 
 export default async function AdminContentPage() {
 	const session = await auth();
@@ -14,7 +15,7 @@ export default async function AdminContentPage() {
 			<Nav role={session.user.role} username={session.user.name ?? 'Unknown'} />
 			<main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<h1 className="text-3xl font-bold mb-6">Content Management</h1>
-				<ContentManager />
+				<ContentManager contentBaseUrl={getContentUrl()} />
 			</main>
 		</div>
 	);

@@ -110,7 +110,7 @@ export function Nav({ role, username }: NavProps) {
 							/>
 						))}
 					</div>
-					<span className="text-[10px] text-muted-foreground text-center">
+					<span className="text-[10px] text-muted-foreground text-center self-end">
 						Colours from{' '}
 						<a
 							href={

@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Nav } from '@/components/nav';
 import { ContentViewer, type ContentViewData } from '@/components/content-viewer';
+import { getContentUrl } from '@/lib/config';
 
 interface ShortViewProps {
 	params: Promise<{ slug: string }>;
@@ -47,7 +48,7 @@ export default async function ShortViewPage({ params }: ShortViewProps) {
 		<div className="min-h-screen">
 			<Nav role={session.user.role} username={session.user.name ?? 'Unknown'} />
 			<main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<ContentViewer content={data} />
+				<ContentViewer content={data} contentBaseUrl={getContentUrl()} />
 			</main>
 		</div>
 	);

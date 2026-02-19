@@ -14,7 +14,7 @@ import { saveFile, deleteFile } from '@/lib/storage';
 import { generateAndSavePreview, deletePreview } from '@/lib/preview';
 import { v4 as uuidv4 } from 'uuid';
 import { lookup } from 'mime-types';
-import { DEFAULT_EXPIRY_HOURS, getBaseUrl } from '@/lib/config';
+import { DEFAULT_EXPIRY_HOURS, getContentUrl } from '@/lib/config';
 import { generateContentId } from '@/lib/id';
 
 export async function POST(req: NextRequest) {
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 			uploadedById: userId,
 		});
 
-		const base = getBaseUrl();
+		const contentBase = getContentUrl();
 
 		return NextResponse.json({
 			success: true,
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
 				filename: content.filename,
 				size: content.fileSize,
 				expiresAt: content.expiresAt,
-				url: `${base}/c/${content.id}`,
+				url: `${contentBase}/c/${content.id}`,
 			},
 		});
 	} catch (error) {

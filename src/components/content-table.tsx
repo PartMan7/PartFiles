@@ -114,7 +114,7 @@ function FileExtIcon({ ext }: { ext: string }) {
 	);
 }
 
-export function ContentManager() {
+export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 	const [content, setContent] = useState<ContentItem[]>([]);
 	const [loading, setLoading] = useState(true);
 
@@ -324,7 +324,7 @@ export function ContentManager() {
 	/** Copy the best URL for an item (first short slug, or /c fallback) to clipboard. */
 	function copyUrl(item: ContentItem) {
 		const path = item.shortSlugs.length > 0 ? `/s/${item.shortSlugs[0].slug}` : `/c/${item.id}`;
-		const full = `${window.location.origin}${path}`;
+		const full = `${contentBaseUrl}${path}`;
 		navigator.clipboard.writeText(full).then(
 			() => toast.success('URL copied'),
 			() => toast.error('Failed to copy')
@@ -334,7 +334,7 @@ export function ContentManager() {
 	/** Copy the raw / embed URL for an item to clipboard. */
 	function copyRawUrl(item: ContentItem) {
 		const path = item.shortSlugs.length > 0 ? `/e/${item.shortSlugs[0].slug}` : `/r/${item.id}`;
-		const full = `${window.location.origin}${path}`;
+		const full = `${contentBaseUrl}${path}`;
 		navigator.clipboard.writeText(full).then(
 			() => toast.success('Raw URL copied'),
 			() => toast.error('Failed to copy')

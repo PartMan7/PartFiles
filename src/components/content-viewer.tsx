@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useSyncExternalStore } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,17 +50,10 @@ function formatSize(bytes: number): string {
 
 /* ── CopyField — a clickable row that copies a full URL ─────────── */
 
-const emptySubscribe = () => () => {};
-
-function CopyField({ label, path }: { label: string; path: string }) {
+function CopyField({ label, path, baseUrl }: { label: string; path: string; baseUrl: string }) {
 	const [copied, setCopied] = useState(false);
-	const origin = useSyncExternalStore(
-		emptySubscribe,
-		() => window.location.origin,
-		() => ''
-	);
 
-	const fullUrl = `${origin}${path}`;
+	const fullUrl = `${baseUrl}${path}`;
 
 	const handleCopy = useCallback(async () => {
 		try {
@@ -101,7 +94,7 @@ function CopyField({ label, path }: { label: string; path: string }) {
 
 /* ── Main component ─────────────────────────────────────────────── */
 
-export function ContentViewer({ content }: { content: ContentViewData }) {
+export function ContentViewer({ content, contentBaseUrl }: { content: ContentViewData; contentBaseUrl: string }) {
 	const expired = content.expiresAt && new Date(content.expiresAt) < new Date();
 	const rawUrl = `/r/${content.id}`;
 	const downloadUrl = `/api/content/${content.id}`;
@@ -221,15 +214,15 @@ export function ContentViewer({ content }: { content: ContentViewData }) {
 				<CardContent>
 					<h2 className="sr-only">URLs</h2>
 					<dl className="grid grid-cols-2 gap-2 text-sm">
-						<CopyField label="Content URL" path={`/c/${content.id}`} />
-						<CopyField label="Raw URL" path={`/r/${content.id}`} />
+						<CopyField label="Content URL" path={`/c/${content.id}`} baseUrl={contentBaseUrl} />
+						<CopyField label="Raw URL" path={`/r/${content.id}`} baseUrl={contentBaseUrl} />
 
 						{content.shortSlugs.map(({ slug }) => (
-							<CopyField key={slug} label={`Short URL`} path={`/s/${slug}`} />
+							<CopyField key={slug} label={`Short URL`} path={`/s/${slug}`} baseUrl={contentBaseUrl} />
 						))}
 
 						{content.shortSlugs.map(({ slug }) => (
-							<CopyField key={`embed-${slug}`} label={`Embed URL`} path={`/e/${slug}`} />
+							<CopyField key={`embed-${slug}`} label={`Embed URL`} path={`/e/${slug}`} baseUrl={contentBaseUrl} />
 						))}
 					</dl>
 				</CardContent>

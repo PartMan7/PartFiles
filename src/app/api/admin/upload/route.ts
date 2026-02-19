@@ -17,7 +17,7 @@ import { saveFile, deleteFile } from '@/lib/storage';
 import { generateAndSavePreview, deletePreview } from '@/lib/preview';
 import { v4 as uuidv4 } from 'uuid';
 import { lookup } from 'mime-types';
-import { getBaseUrl } from '@/lib/config';
+import { getContentUrl } from '@/lib/config';
 import { generateContentId } from '@/lib/id';
 
 export async function POST(req: NextRequest) {
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
 			});
 		}
 
-		const base = getBaseUrl();
+		const contentBase = getContentUrl();
 
 		return NextResponse.json({
 			success: true,
@@ -146,8 +146,8 @@ export async function POST(req: NextRequest) {
 				shortSlugs: validatedSlug ? [validatedSlug] : [],
 				size: content.fileSize,
 				expiresAt: content.expiresAt,
-				url: `${base}/c/${content.id}`,
-				shortUrl: validatedSlug ? `${base}/s/${validatedSlug}` : null,
+				url: `${contentBase}/c/${content.id}`,
+				shortUrl: validatedSlug ? `${contentBase}/s/${validatedSlug}` : null,
 			},
 		});
 	} catch (error) {
