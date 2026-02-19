@@ -3,10 +3,10 @@ import { LoginForm } from '@/components/login-form';
 
 export default function LoginPage() {
 	return (
-		<main id="main-content">
+		<main id="main-content" className="flex items-center justify-center min-h-[calc(100vh-200px)]">
 			<Suspense
 				fallback={
-					<div className="min-h-screen flex items-center justify-center p-4">
+					<div className="flex items-center justify-center p-4">
 						<p className="text-muted-foreground">Loading...</p>
 					</div>
 				}

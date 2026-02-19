@@ -77,7 +77,7 @@ export default function InvitePage() {
 	}
 
 	return (
-		<div className="min-h-screen flex items-center justify-center p-4">
+		<div className="flex items-center justify-center p-4 min-h-[calc(100vh-200px)]">
 			<Card className="w-full max-w-md border-primary/25">
 				{status === 'loading' && (
 					<>
