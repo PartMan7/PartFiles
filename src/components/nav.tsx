@@ -55,7 +55,7 @@ function handleAccentGridKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
 }
 
 interface NavProps {
-	role: string;
+	role: string | undefined;
 	username: string;
 }
 
@@ -97,7 +97,7 @@ export function Nav({ role, username }: NavProps) {
 		admin: 2,
 	};
 
-	const userLevel = roleLevel[role] ?? 0;
+	const userLevel = role ? (roleLevel[role] ?? 0) : -1;
 	const visibleLinks = links.filter(link => userLevel >= (roleLevel[link.minRole] ?? 0));
 
 	function toggleTheme() {
@@ -248,10 +248,14 @@ export function Nav({ role, username }: NavProps) {
 
 					{/* Right side: desktop */}
 					<div className="hidden md:flex items-center gap-3">
-						<span className="text-sm text-muted-foreground">{username}</span>
-						<Badge variant="outline" className={cn('text-xs', roleBadgeColor[role])}>
-							{role}
-						</Badge>
+						{role ? (
+							<>
+								<span className="text-sm text-muted-foreground">{username}</span>
+								<Badge variant="outline" className={cn('text-xs', roleBadgeColor[role])}>
+									{role}
+								</Badge>
+							</>
+						) : null}
 						{iconButtons}
 						<Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
 							Sign Out
@@ -275,13 +279,17 @@ export function Nav({ role, username }: NavProps) {
 							</Tooltip>
 							<DropdownMenuContent align="end" className="w-52">
 								{/* User info */}
-								<div className="px-3 py-2 flex items-center gap-2">
-									<span className="text-sm text-muted-foreground truncate">{username}</span>
-									<Badge variant="outline" className={cn('text-xs shrink-0', roleBadgeColor[role])}>
-										{role}
-									</Badge>
-								</div>
-								<DropdownMenuSeparator />
+								{role ? (
+									<>
+										<div className="px-3 py-2 flex items-center gap-2">
+											<span className="text-sm text-muted-foreground truncate">{username}</span>
+											<Badge variant="outline" className={cn('text-xs shrink-0', roleBadgeColor[role])}>
+												{role}
+											</Badge>
+										</div>
+										<DropdownMenuSeparator />
+									</>
+								) : null}
 
 								{/* Nav links */}
 								{visibleLinks.map(link => {

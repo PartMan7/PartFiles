@@ -18,11 +18,16 @@ describe('GET /api/preview/[id]', () => {
 		mockAdmin();
 	});
 
-	it('returns 401 when unauthenticated', async () => {
+	it('allows unauthenticated requests', async () => {
 		mockUnauthenticated();
+		mockPrisma.content.findUnique.mockResolvedValue({
+			previewPath: 'mock/preview.jpg',
+			expiresAt: null,
+			mimeType: 'image/jpeg',
+		});
 		const req = previewRequest('some-id');
 		const res = await GET(req, { params: Promise.resolve({ id: 'some-id' }) });
-		expect(res.status).toBe(401);
+		expect(res.status).toBe(200);
 	});
 
 	it('returns 404 for non-existent content', async () => {

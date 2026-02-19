@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getFilePath } from '@/lib/storage';
 import { sanitizeFilename } from '@/lib/validation';
@@ -35,11 +34,6 @@ const INLINE_SAFE_TYPES = new Set([
 ]);
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-	const session = await auth();
-	if (!session?.user) {
-		return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
 	const { id } = await params;
 
 	const content = await prisma.content.findUnique({ where: { id } });

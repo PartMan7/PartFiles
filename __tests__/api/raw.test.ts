@@ -7,11 +7,19 @@ import { NextRequest } from 'next/server';
 describe('GET /r/[id] (raw file)', () => {
 	const makeReq = () => new NextRequest('http://localhost:3000/r/abc123');
 
-	it('returns 401 when unauthenticated', async () => {
+	it('allows unauthenticated requests', async () => {
 		mockUnauthenticated();
-		const { status, body } = await parseResponse(await GET(makeReq(), { params: Promise.resolve({ id: 'abc123' }) }));
-		expect(status).toBe(401);
-		expect(body?.error).toBe('Unauthorized');
+
+		mockPrisma.content.findUnique.mockResolvedValue({
+			id: 'abc123',
+			filename: 'photo.jpg',
+			storagePath: 'path/photo.jpg',
+			expiresAt: null,
+			mimeType: 'image/jpeg',
+			fileSize: 17,
+		});
+		const { status } = await parseResponse(await GET(makeReq(), { params: Promise.resolve({ id: 'abc123' }) }));
+		expect(status).toBe(200);
 	});
 
 	it('returns 404 for non-existent content', async () => {

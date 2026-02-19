@@ -1,4 +1,4 @@
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Nav } from '@/components/nav';
@@ -11,7 +11,6 @@ interface ContentViewProps {
 
 export default async function ContentViewPage({ params }: ContentViewProps) {
 	const session = await auth();
-	if (!session?.user) redirect('/login');
 
 	const { id } = await params;
 
@@ -41,7 +40,7 @@ export default async function ContentViewPage({ params }: ContentViewProps) {
 
 	return (
 		<div className="min-h-screen">
-			<Nav role={session.user.role} username={session.user.name ?? 'Unknown'} />
+			<Nav role={session?.user.role} username={session?.user.name ?? 'Not logged in'} />
 			<main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<ContentViewer content={data} contentBaseUrl={getContentUrl()} />
 			</main>
