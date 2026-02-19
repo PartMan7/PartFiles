@@ -54,7 +54,7 @@ export const authConfig: NextAuthConfig = {
 				// Fix callbackUrl using localhost when hosted behind a proxy.
 				if (headers.get('x-forwarded-host')) {
 					const loginUrl = new URL('/login', origin);
-					loginUrl.searchParams.set('callbackUrl', nextUrl.toString());
+					loginUrl.searchParams.set('callbackUrl', nextUrl.pathname + nextUrl.search);
 					return Response.redirect(loginUrl);
 				}
 				return false; // Redirect to login (default behavior)
