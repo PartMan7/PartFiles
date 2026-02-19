@@ -247,7 +247,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 		if (!confirm(`Delete "${item.filename}"? This cannot be undone.`)) return;
 
 		try {
-			const res = await fetch(`/api/admin/content/${item.id}`, { method: 'DELETE' });
+			const res = await fetch(`${contentBaseUrl}/api/admin/content/${item.id}`, { method: 'DELETE' });
 			if (res.ok) {
 				toast.success(`"${item.filename}" deleted`);
 				fetchContent();
@@ -265,7 +265,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 		if (!slug) return;
 
 		try {
-			const res = await fetch(`/api/admin/content/${item.id}`, {
+			const res = await fetch(`${contentBaseUrl}/api/admin/content/${item.id}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ addSlugs: [slug] }),
@@ -286,7 +286,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 		if (!confirm(`Remove short URL /s/${slug}?`)) return;
 
 		try {
-			const res = await fetch(`/api/admin/content/${item.id}`, {
+			const res = await fetch(`${contentBaseUrl}/api/admin/content/${item.id}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ removeSlugs: [slug] }),
@@ -305,7 +305,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 
 	async function handleRemoveExpiry(item: ContentItem) {
 		try {
-			const res = await fetch(`/api/admin/content/${item.id}`, {
+			const res = await fetch(`${contentBaseUrl}/api/admin/content/${item.id}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ expiresAt: null }),
@@ -538,7 +538,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 								{/* Filename */}
 								<TableCell className="font-medium max-w-48 truncate">
 									<Link
-										href={`/c/${item.id}`}
+										href={`${contentBaseUrl}/c/${item.id}`}
 										className="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-sm"
 									>
 										{item.filename}
@@ -553,7 +553,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
-											<DropdownMenuItem onClick={() => window.open(`/c/${item.id}`, '_blank')}>
+											<DropdownMenuItem onClick={() => window.open(`${contentBaseUrl}/c/${item.id}`, '_blank')}>
 												<Eye className="mr-2 h-4 w-4" />
 												View
 											</DropdownMenuItem>
@@ -619,7 +619,12 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 										{item.shortSlugs.length > 0 ? (
 											item.shortSlugs.map(({ slug }) => (
 												<div key={slug} className="flex items-center gap-1">
-													<a href={`/s/${slug}`} className="text-primary underline text-sm" target="_blank" rel="noopener noreferrer">
+													<a
+														href={`${contentBaseUrl}/s/${slug}`}
+														className="text-primary underline text-sm"
+														target="_blank"
+														rel="noopener noreferrer"
+													>
 														/s/{slug}
 														<span className="sr-only"> (opens in new tab)</span>
 													</a>

@@ -119,4 +119,3 @@ if (process.env.NODE_ENV === 'production' && AUTH_SECRET.length < 32) {
 			'Generate one with: openssl rand -base64 32'
 	);
 }
-

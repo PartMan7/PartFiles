@@ -96,8 +96,8 @@ function CopyField({ label, path, baseUrl }: { label: string; path: string; base
 
 export function ContentViewer({ content, contentBaseUrl }: { content: ContentViewData; contentBaseUrl: string }) {
 	const expired = content.expiresAt && new Date(content.expiresAt) < new Date();
-	const rawUrl = `/r/${content.id}`;
-	const downloadUrl = `/api/content/${content.id}`;
+	const rawUrl = `${contentBaseUrl}/r/${content.id}`;
+	const downloadUrl = `${contentBaseUrl}/api/content/${content.id}`;
 	const mime = content.mimeType;
 
 	if (expired) {

@@ -4,6 +4,9 @@
  */
 export function getBaseUrl(): string {
 	if (process.env.NODE_ENV !== 'development' && process.env.BASE_URL) return process.env.BASE_URL.replace(/\/+$/, '');
+	if (typeof window !== 'undefined') {
+		return window.location.origin;
+	}
 	return `http://localhost:${process.env.PORT || 3000}`;
 }
 
