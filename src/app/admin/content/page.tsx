@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { Nav } from '@/components/nav';
 import { isAdmin } from '@/lib/permissions';
 import { ContentManager } from '@/components/content-table';
-import { getContentUrl } from '@/lib/config';
+import { getContentUrl } from '@/lib/url';
 
 export default async function AdminContentPage() {
 	const session = await auth();

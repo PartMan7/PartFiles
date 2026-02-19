@@ -14,7 +14,9 @@ import { saveFile, deleteFile } from '@/lib/storage';
 import { generateAndSavePreview, deletePreview } from '@/lib/preview';
 import { v4 as uuidv4 } from 'uuid';
 import { lookup } from 'mime-types';
-import { DEFAULT_EXPIRY_HOURS, getContentUrl } from '@/lib/config';
+import { DEFAULT_EXPIRY_HOURS } from '@/lib/config';
+import { getContentUrl } from '@/lib/url';
+
 import { generateContentId } from '@/lib/id';
 
 export async function POST(req: NextRequest) {

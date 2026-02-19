@@ -4,7 +4,8 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { isAdmin } from '@/lib/permissions';
 import { hashSync } from 'bcryptjs';
-import { ROLES, getBaseUrl } from '@/lib/config';
+import { ROLES } from '@/lib/config';
+import { getBaseUrl } from '@/lib/url';
 
 /** How long an invite link stays valid. */
 const INVITE_EXPIRY_HOURS = 48;

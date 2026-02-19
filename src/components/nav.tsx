@@ -19,7 +19,7 @@ import { Sun, Moon, Palette, Keyboard, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAccent } from '@/components/accent-provider';
 import { ACCENTS, ACCENT_DISPLAY_ORDER, type AccentName } from '@/lib/accents';
-import { getBaseUrl } from '../lib/config';
+import { getBaseUrl } from '@/lib/url';
 
 const emptySubscribe = () => () => {};
 

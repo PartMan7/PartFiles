@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Nav } from '@/components/nav';
 import { ContentViewer, type ContentViewData } from '@/components/content-viewer';
-import { getContentUrl } from '@/lib/config';
+import { getContentUrl } from '@/lib/url';
 
 interface ShortViewProps {
 	params: Promise<{ slug: string }>;
