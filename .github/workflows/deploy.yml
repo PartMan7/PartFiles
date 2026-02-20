@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 env:
-  NODE_VERSION: 20
+  NODE_VERSION: 22.18.0
   DEPLOY_BRANCH: deploy
 
 jobs:
@@ -103,15 +103,6 @@ jobs:
             }],
           };
           PM2CONF
-
-          # prestart installs dotenv, prisma, tsx so migrations/seed work without global installs
-          node -e "
-            const fs = require('fs');
-            const p = JSON.parse(fs.readFileSync('_deploy/package.json', 'utf8'));
-            p.scripts = p.scripts || {};
-            p.scripts.prestart = 'npm install --no-save dotenv prisma tsx';
-            fs.writeFileSync('_deploy/package.json', JSON.stringify(p, null, 2));
-          "
 
           # Operational scripts
           cp -r scripts _deploy/scripts
