@@ -3,10 +3,9 @@
  * invite links, etc.). Falls back to localhost:3000 in development.
  */
 export function getBaseUrl(): string {
-	if (process.env.NODE_ENV !== 'development' && process.env.BASE_URL) return process.env.BASE_URL.replace(/\/+$/, '');
-	if (typeof window !== 'undefined') {
-		return window.location.origin;
-	}
+	const publicBase = process.env.NEXT_PUBLIC_BASE_URL;
+	if (publicBase) return publicBase.replace(/\/$/, '');
+	if (typeof window !== 'undefined') return window.location.origin;
 	return `http://localhost:${process.env.PORT || 3000}`;
 }
 
@@ -16,6 +15,7 @@ export function getBaseUrl(): string {
  * will prefer it. Falls back to the main domain when CONTENT_URL is unset.
  */
 export function getContentUrl(): string {
-	if (process.env.NODE_ENV !== 'development' && process.env.CONTENT_URL) return process.env.CONTENT_URL.replace(/\/+$/, '');
+	const publicContent = process.env.NEXT_PUBLIC_CONTENT_URL;
+	if (publicContent) return publicContent.replace(/\/$/, '');
 	return getBaseUrl();
 }

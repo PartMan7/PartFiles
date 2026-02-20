@@ -3,6 +3,10 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
 	output: 'standalone',
 	serverExternalPackages: ['better-sqlite3'],
+	env: {
+		NEXT_PUBLIC_BASE_URL: process.env.BASE_URL || '',
+		NEXT_PUBLIC_CONTENT_URL: process.env.CONTENT_URL || '',
+	},
 	experimental: {
 		serverActions: {
 			bodySizeLimit: '100mb',
