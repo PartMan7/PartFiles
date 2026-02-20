@@ -1,0 +1,152 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: 20
+  DEPLOY_BRANCH: deploy
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy
+      cancel-in-flight: true
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Prepare build-time database
+        run: |
+          cat > .env <<'EOF'
+          DATABASE_URL="file:./build-temp.db"
+          AUTH_SECRET="build-placeholder-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          BASE_URL="http://localhost:3000"
+          EOF
+          npx prisma db push --skip-generate --accept-data-loss
+
+      - name: Build
+        run: npm run build
+
+      - name: Assemble deployment tree
+        run: |
+          mkdir _deploy
+
+          # Standalone server output becomes the deployment root
+          cp -a .next/standalone/. _deploy/
+
+          # Static assets and public dir are not included by standalone;
+          # place them where the server expects them.
+          cp -r .next/static _deploy/.next/static
+          cp -r public _deploy/public
+
+          # Prisma schema, migrations, and seed script
+          mkdir -p _deploy/prisma
+          cp prisma/schema.prisma _deploy/prisma/
+          cp prisma/seed.mts _deploy/prisma/
+          if [ -d prisma/migrations ]; then
+            cp -r prisma/migrations _deploy/prisma/
+          fi
+
+          # dotenv is needed by the seed script but not traced by standalone
+          if [ -d node_modules/dotenv ]; then
+            cp -r node_modules/dotenv _deploy/node_modules/dotenv
+          fi
+
+          # Standalone prisma config (no dotenv — env vars come from the OS)
+          cat > _deploy/prisma.config.ts <<'PCONF'
+          import { defineConfig } from 'prisma/config';
+          export default defineConfig({
+            schema: 'prisma/schema.prisma',
+            migrations: { path: 'prisma/migrations' },
+            datasource: { url: process.env.DATABASE_URL || 'file:./data/partfiles.db' },
+          });
+          PCONF
+
+          # PM2 ecosystem config (node_args loads .env from cwd before server starts)
+          cat > _deploy/ecosystem.config.cjs <<'PM2CONF'
+          module.exports = {
+            apps: [{
+              name: 'partfiles',
+              script: 'server.js',
+              node_args: '-r dotenv/config',
+              env: {
+                NODE_ENV: 'production',
+                PORT: 3000,
+                HOSTNAME: '0.0.0.0',
+              },
+            }],
+          };
+          PM2CONF
+
+          # prestart installs dotenv, prisma, tsx so migrations/seed work without global installs
+          node -e "
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('_deploy/package.json', 'utf8'));
+            p.scripts = p.scripts || {};
+            p.scripts.prestart = 'npm install --no-save dotenv prisma tsx';
+            fs.writeFileSync('_deploy/package.json', JSON.stringify(p, null, 2));
+          "
+
+          # Operational scripts
+          cp -r scripts _deploy/scripts
+
+          # .env template (never real secrets)
+          cp .env.example _deploy/.env.example
+
+          # Deployment documentation
+          cp DEPLOY.md _deploy/DEPLOY.md
+
+          # .gitignore for the deploy branch — keep secrets and data out
+          cat > _deploy/.gitignore <<'GITIGNORE'
+          .env
+          .env.local
+          .env.production
+          .env.*
+          !.env.example
+          *.db
+          *.db-journal
+          /uploads/
+          /logs/
+          .DS_Store
+          GITIGNORE
+
+          # Scrub any build-time artefacts that must not ship
+          rm -f _deploy/build-temp.db _deploy/.env
+
+      - name: Push to deploy branch
+        run: |
+          cd _deploy
+          git init -b "$DEPLOY_BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "deploy: ${GITHUB_SHA::8} ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
+          git remote add origin \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push --force origin "$DEPLOY_BRANCH"
