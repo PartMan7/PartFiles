@@ -136,8 +136,20 @@ jobs:
           git init -b "$DEPLOY_BRANCH"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "deploy: ${GITHUB_SHA::8} ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
-          git remote add origin \
-            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-          git push --force origin "$DEPLOY_BRANCH"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          
+          # Fetch the latest commit from the deploy branch without checking it out
+          git fetch origin "$DEPLOY_BRANCH" --depth 1 || true
+          
+          # If the branch exists, soft reset to it so the new commit is incremental
+          if git rev-parse FETCH_HEAD >/dev/null 2>&1; then
+            git reset --soft FETCH_HEAD
+          fi
+
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "deploy: ${GITHUB_SHA::8} ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
+            git push --force origin "$DEPLOY_BRANCH"
+          else
+            echo "No changes to deploy."
+          fi
