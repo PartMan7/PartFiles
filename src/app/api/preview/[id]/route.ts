@@ -2,52 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getFilePath } from '@/lib/storage';
 import fs from 'fs/promises';
-
-/**
- * Simple in-memory rate limiter to prevent DDoS abuse on preview endpoint.
- * Tracks request counts per IP within a sliding window.
- */
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 120; // max 120 preview requests per IP per minute
-
-interface RateLimitEntry {
-	count: number;
-	resetAt: number;
-}
-
-const rateLimitMap = new Map<string, RateLimitEntry>();
-
-// Periodically clean up stale entries to avoid memory leaks
-const CLEANUP_INTERVAL_MS = 5 * 60_000; // every 5 minutes
-let lastCleanup = Date.now();
-
-function cleanupRateLimits() {
-	const now = Date.now();
-	if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
-	lastCleanup = now;
-	for (const [key, entry] of rateLimitMap) {
-		if (now > entry.resetAt) {
-			rateLimitMap.delete(key);
-		}
-	}
-}
-
-function checkRateLimit(ip: string): boolean {
-	cleanupRateLimits();
-	const now = Date.now();
-	const entry = rateLimitMap.get(ip);
-
-	if (!entry || now > entry.resetAt) {
-		rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-		return true;
-	}
-
-	entry.count++;
-	return entry.count <= RATE_LIMIT_MAX_REQUESTS;
-}
-
-// Exported for testing
-export { rateLimitMap, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS };
+import { checkRateLimit } from './rate-limit';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 	// Rate limit by IP (defence-in-depth against authenticated DDoS)

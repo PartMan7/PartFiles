@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { GET, rateLimitMap, RATE_LIMIT_MAX_REQUESTS } from '@/app/api/preview/[id]/route';
+import { GET } from '@/app/api/preview/[id]/route';
+import { rateLimitMap, RATE_LIMIT_MAX_REQUESTS } from '@/app/api/preview/[id]/rate-limit';
 import { mockPrisma, mockAdmin, mockUnauthenticated } from '../../setup';
 import { NextRequest } from 'next/server';
 import fs from 'fs/promises';
