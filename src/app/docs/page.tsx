@@ -120,15 +120,17 @@ export default function ApiDocs() {
 			<main id="main-content" className="grow w-full">
 				<div id="scalar-docs-container">
 					<ApiReferenceReact
-						configuration={{
-							spec: {
-								url: '/openapi.json', // not typed in ApiReferenceConfiguration but needed to work
-							},
-							theme: 'none',
-							showSidebar: true,
-							hideDownloadButton: false,
-							customCss: customCss,
-						} as AnyApiReferenceConfiguration}
+						configuration={
+							{
+								spec: {
+									url: '/openapi.json', // not typed in ApiReferenceConfiguration but needed to work
+								},
+								theme: 'none',
+								showSidebar: true,
+								hideDownloadButton: false,
+								customCss: customCss,
+							} as AnyApiReferenceConfiguration
+						}
 					/>
 				</div>
 			</main>
