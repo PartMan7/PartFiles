@@ -1,0 +1,1 @@
+"use strict";exports.id=8200,exports.ids=[8200],exports.modules={8200:(e,t,o)=>{o.r(t),o.d(t,{default:()=>s});var l=o(16712),r=o(56442);let s=(0,l.defineComponent)({__name:"CollectionScripts",setup:e=>(e,t)=>((0,l.openBlock)(),(0,l.createBlock)(r.A,null,{title:(0,l.withCtx)(()=>[...t[0]||(t[0]=[(0,l.createTextVNode)("Scripts",-1)])]),_:1}))})}};

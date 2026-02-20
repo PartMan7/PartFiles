@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[294],{70294:(e,l,t)=>{t.r(l),t.d(l,{default:()=>_});var u=t(84363),n=t(35028);let _=(0,u.pM)({__name:"CollectionSync",setup:e=>(e,l)=>((0,u.uX)(),(0,u.Wv)(n.A,null,{title:(0,u.k6)(()=>[...l[0]||(l[0]=[(0,u.eW)("Sync",-1)])]),_:1}))})}}]);

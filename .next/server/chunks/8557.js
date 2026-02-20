@@ -1,0 +1,1 @@
+"use strict";exports.id=8557,exports.ids=[8557],exports.modules={78557:(e,t,o)=>{o.r(t),o.d(t,{default:()=>c});var l=o(16712),n=o(56442);let c=(0,l.defineComponent)({__name:"CollectionSync",setup:e=>(e,t)=>((0,l.openBlock)(),(0,l.createBlock)(n.A,null,{title:(0,l.withCtx)(()=>[...t[0]||(t[0]=[(0,l.createTextVNode)("Sync",-1)])]),_:1}))})}};

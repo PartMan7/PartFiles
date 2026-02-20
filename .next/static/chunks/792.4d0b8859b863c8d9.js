@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[792],{10792:(e,t,l)=>{l.r(t),l.d(t,{default:()=>p});var s=l(84363),u=l(35028);let p=(0,s.pM)({__name:"CollectionScripts",setup:e=>(e,t)=>((0,s.uX)(),(0,s.Wv)(u.A,null,{title:(0,s.k6)(()=>[...t[0]||(t[0]=[(0,s.eW)("Scripts",-1)])]),_:1}))})}}]);

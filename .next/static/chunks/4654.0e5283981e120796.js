@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[4654],{44654:(e,l,s)=>{s.r(l),s.d(l,{default:()=>k});var t=s(84363),u=s(35028);let k=(0,t.pM)({__name:"CollectionCookies",setup:e=>(e,l)=>((0,t.uX)(),(0,t.Wv)(u.A,null,{title:(0,t.k6)(()=>[...l[0]||(l[0]=[(0,t.eW)("Cookies",-1)])]),_:1}))})}}]);

@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  username     String        @unique
+  passwordHash String
+  role         String        @default("guest") // "admin" | "uploader" | "guest"
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  content      Content[]
+  inviteTokens InviteToken[]
+}
+
+model InviteToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Content {
+  id               String      @id @default(cuid())
+  filename         String
+  originalFilename String
+  storagePath      String
+  previewPath      String?
+  directory        String?
+  fileSize         Int
+  fileExtension    String
+  mimeType         String
+  expiresAt        DateTime?
+  uploadedById     String
+  uploadedBy       User        @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  createdAt        DateTime    @default(now())
+  shortSlugs       ShortSlug[]
+}
+
+model ShortSlug {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model AllowedDirectory {
+  id   String @id @default(cuid())
+  name String @unique
+  path String @unique
+}

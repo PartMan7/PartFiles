@@ -1,0 +1,10 @@
+.env
+.env.local
+.env.production
+.env.*
+!.env.example
+*.db
+*.db-journal
+/uploads/
+/logs/
+.DS_Store

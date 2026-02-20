@@ -1,0 +1,1 @@
+"use strict";exports.id=4086,exports.ids=[4086],exports.modules={4086:(e,t,o)=>{o.r(t),o.d(t,{default:()=>i});var l=o(16712),s=o(56442);let i=(0,l.defineComponent)({__name:"CollectionCookies",setup:e=>(e,t)=>((0,l.openBlock)(),(0,l.createBlock)(s.A,null,{title:(0,l.withCtx)(()=>[...t[0]||(t[0]=[(0,l.createTextVNode)("Cookies",-1)])]),_:1}))})}};

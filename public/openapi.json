@@ -1,0 +1,503 @@
+{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "PartFiles API",
+		"description": "API documentation for PartFiles - a minimalist file management and sharing platform.",
+		"version": "1.0.0"
+	},
+	"servers": [
+		{
+			"url": "/api",
+			"description": "Main API"
+		}
+	],
+	"tags": [
+		{
+			"name": "Public",
+			"description": "Publicly accessible endpoints (unauthenticated)"
+		},
+		{
+			"name": "Uploader",
+			"description": "Endpoints requiring Uploader or Admin role"
+		},
+		{
+			"name": "Admin",
+			"description": "Endpoints requiring Admin role"
+		}
+	],
+	"paths": {
+		"/invite/{token}": {
+			"get": {
+				"tags": ["Public"],
+				"summary": "Validate an invite token",
+				"description": "Checks if an invite token is valid and returns the associated username.",
+				"parameters": [
+					{
+						"name": "token",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Token is valid"
+					},
+					"400": {
+						"description": "Invalid token"
+					}
+				}
+			},
+			"post": {
+				"tags": ["Public"],
+				"summary": "Redeem an invite token",
+				"description": "Sets the password for a new user account using a valid invite token.",
+				"parameters": [
+					{
+						"name": "token",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"password": {
+										"type": "string",
+										"minLength": 8
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Account activated successfully"
+					}
+				}
+			}
+		},
+		"/content/{id}/raw": {
+			"get": {
+				"tags": ["Public"],
+				"summary": "Download raw content",
+				"description": "Downloads the raw file content by ID. Respects expiration.",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "File content",
+						"content": {
+							"*/*": {
+								"schema": {
+									"type": "string",
+									"format": "binary"
+								}
+							}
+						}
+					},
+					"410": {
+						"description": "Content has expired"
+					}
+				}
+			}
+		},
+		"/s/{slug}": {
+			"get": {
+				"tags": ["Public"],
+				"summary": "Access content via short slug",
+				"description": "Redirects or serves content associated with a short slug.",
+				"parameters": [
+					{
+						"name": "slug",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Content served"
+					},
+					"404": {
+						"description": "Slug not found"
+					}
+				}
+			}
+		},
+		"/preview/{id}": {
+			"get": {
+				"tags": ["Public"],
+				"summary": "Get content preview",
+				"description": "Returns a low-resolution preview image for supported content types. Rate limited by IP.",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Preview image",
+						"content": {
+							"image/jpeg": {
+								"schema": {
+									"type": "string",
+									"format": "binary"
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Too many requests"
+					}
+				}
+			}
+		},
+		"/upload": {
+			"post": {
+				"tags": ["Uploader"],
+				"summary": "Upload a file",
+				"description": "Upload a new file. **Requires Uploader or Admin role.**",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"file": {
+										"type": "string",
+										"format": "binary"
+									},
+									"filename": {
+										"type": "string"
+									},
+									"expiry": {
+										"type": "string",
+										"enum": ["off", "1h", "12h", "24h", "7d", "30d"]
+									},
+									"shortSlug": {
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "File uploaded successfully"
+					},
+					"401": {
+						"description": "Unauthorized"
+					},
+					"403": {
+						"description": "Forbidden"
+					}
+				}
+			}
+		},
+		"/admin/upload": {
+			"post": {
+				"tags": ["Admin"],
+				"summary": "Admin file upload",
+				"description": "Upload a file with administrative options (e.g., custom directory). **Requires Admin role.**",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"file": {
+										"type": "string",
+										"format": "binary"
+									},
+									"directory": {
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "File uploaded"
+					}
+				}
+			}
+		},
+		"/admin/users": {
+			"get": {
+				"tags": ["Admin"],
+				"summary": "List all users",
+				"description": "Returns a list of all users in the system. **Requires Admin role.**",
+				"responses": {
+					"200": {
+						"description": "List of users"
+					}
+				}
+			},
+			"post": {
+				"tags": ["Admin"],
+				"summary": "Create a new user or invite",
+				"description": "Creates a new user directly or generates an invite link. **Requires Admin role.**",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"username": {
+										"type": "string"
+									},
+									"password": {
+										"type": "string"
+									},
+									"role": {
+										"type": "string",
+										"enum": ["guest", "uploader", "admin"]
+									},
+									"invite": {
+										"type": "boolean"
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "User created"
+					}
+				}
+			}
+		},
+		"/admin/users/{id}": {
+			"get": {
+				"tags": ["Admin"],
+				"summary": "Get user details",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "User details"
+					}
+				}
+			},
+			"put": {
+				"tags": ["Admin"],
+				"summary": "Update user",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"username": {
+										"type": "string"
+									},
+									"role": {
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "User updated"
+					}
+				}
+			},
+			"delete": {
+				"tags": ["Admin"],
+				"summary": "Delete user",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "User deleted"
+					}
+				}
+			}
+		},
+		"/admin/content": {
+			"get": {
+				"tags": ["Admin"],
+				"summary": "List all content",
+				"description": "Returns a list of all content across the system. **Requires Admin role.**",
+				"parameters": [
+					{
+						"name": "expired",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"enum": ["active", "expired"]
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "List of content"
+					}
+				}
+			}
+		},
+		"/admin/content/{id}": {
+			"get": {
+				"tags": ["Admin"],
+				"summary": "Get content metadata",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Content details"
+					}
+				}
+			},
+			"put": {
+				"tags": ["Admin"],
+				"summary": "Update content",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"filename": {
+										"type": "string"
+									},
+									"expiresAt": {
+										"type": "string",
+										"format": "date-time"
+									},
+									"addSlugs": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										}
+									},
+									"removeSlugs": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Content updated"
+					}
+				}
+			},
+			"delete": {
+				"tags": ["Admin"],
+				"summary": "Delete content",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Content deleted"
+					}
+				}
+			}
+		},
+		"/directories": {
+			"get": {
+				"tags": ["Admin"],
+				"summary": "List allowed directories",
+				"description": "Returns a list of directories allowed for storage. **Requires Admin role.**",
+				"responses": {
+					"200": {
+						"description": "List of directories"
+					}
+				}
+			}
+		}
+	}
+}
