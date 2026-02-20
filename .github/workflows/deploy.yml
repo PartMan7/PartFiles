@@ -57,7 +57,6 @@ jobs:
           cat > .env <<'EOF'
           DATABASE_URL="file:./build-temp.db"
           AUTH_SECRET="build-placeholder-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-          BASE_URL="http://localhost:3000"
           EOF
           npx prisma db push --accept-data-loss
 
