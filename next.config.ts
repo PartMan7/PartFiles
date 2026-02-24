@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
 		serverActions: {
 			bodySizeLimit: '100mb',
 		},
+		// Allow large uploads when middleware runs (auth); default is 10MB and can cause 413.
+		// @ts-expect-error - supported in Next 15 runtime but not in ExperimentalConfig type
+		middlewareClientMaxBodySize: '100mb',
 	},
 	async headers() {
 		return [

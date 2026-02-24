@@ -21,7 +21,7 @@ import { useAccent } from '@/components/accent-provider';
 import { ACCENTS, ACCENT_DISPLAY_ORDER, type AccentName } from '@/lib/accents';
 import { getBaseUrl } from '@/lib/url';
 
-const emptySubscribe = () => () => {};
+const emptySubscribe = () => () => { };
 
 const ACCENT_GRID_COLS = 7;
 
@@ -271,7 +271,11 @@ export function Nav({ role, username }: NavProps) {
 							<Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
 								Sign Out
 							</Button>
-						) : null}
+						) : (
+							<Button variant="default" size="sm" asChild>
+								<Link href={`${baseUrl}/login`}>Log in</Link>
+							</Button>
+						)}
 					</div>
 
 					{/* Right side: mobile — icon buttons + hamburger */}
@@ -319,12 +323,16 @@ export function Nav({ role, username }: NavProps) {
 									);
 								})}
 
+								<DropdownMenuSeparator />
 								{role ? (
-									<>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login' })}>Sign Out</DropdownMenuItem>
-									</>
-								) : null}
+									<DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login' })}>Sign Out</DropdownMenuItem>
+								) : (
+									<DropdownMenuItem asChild>
+										<Link href={`${baseUrl}/login`} className="font-medium">
+											Log in
+										</Link>
+									</DropdownMenuItem>
+								)}
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</div>
