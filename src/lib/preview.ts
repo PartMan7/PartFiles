@@ -19,6 +19,22 @@ export function isPreviewable(mimeType: string): boolean {
 }
 
 /**
+ * Get image dimensions from a buffer (for images only).
+ * Returns { width, height } or null if not an image or metadata unavailable.
+ */
+export async function getImageDimensions(buffer: Buffer): Promise<{ width: number; height: number } | null> {
+	try {
+		const meta = await sharp(buffer).metadata();
+		if (typeof meta.width === 'number' && typeof meta.height === 'number') {
+			return { width: meta.width, height: meta.height };
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Generate a low-resolution JPEG preview from an image buffer.
  * Returns the compressed preview buffer, or null if generation fails.
  */

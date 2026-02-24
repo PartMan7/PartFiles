@@ -37,6 +37,8 @@ model Content {
   fileSize         Int
   fileExtension    String
   mimeType         String
+  imageWidth       Int?
+  imageHeight      Int?
   expiresAt        DateTime?
   uploadedById     String
   uploadedBy       User        @relation(fields: [uploadedById], references: [id], onDelete: Cascade)

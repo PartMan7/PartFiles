@@ -212,6 +212,8 @@ export async function createContentWithStorageCheck(
 		fileSize: number;
 		fileExtension: string;
 		mimeType: string;
+		imageWidth?: number | null;
+		imageHeight?: number | null;
 		expiresAt: Date | null;
 		uploadedById: string;
 	}

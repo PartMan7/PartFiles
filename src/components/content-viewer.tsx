@@ -18,6 +18,8 @@ export interface ContentViewData {
 	fileExtension: string;
 	mimeType: string;
 	directory: string | null;
+	imageWidth: number | null;
+	imageHeight: number | null;
 	expiresAt: string | null;
 	createdAt: string;
 	uploadedBy: { username: string };
@@ -179,6 +181,15 @@ export function ContentViewer({ content, contentBaseUrl }: { content: ContentVie
 
 						<dt className="text-muted-foreground">Size</dt>
 						<dd>{formatSize(content.fileSize)}</dd>
+
+						{isImage(mime) && content.imageWidth != null && content.imageHeight != null && (
+							<>
+								<dt className="text-muted-foreground">Dimensions</dt>
+								<dd>
+									{content.imageWidth} × {content.imageHeight}
+								</dd>
+							</>
+						)}
 
 						<dt className="text-muted-foreground">Type</dt>
 						<dd>{content.mimeType}</dd>

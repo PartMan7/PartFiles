@@ -32,6 +32,8 @@ export default async function ContentViewPage({ params }: ContentViewProps) {
 		fileExtension: content.fileExtension,
 		mimeType: content.mimeType,
 		directory: content.directory,
+		imageWidth: content.imageWidth,
+		imageHeight: content.imageHeight,
 		expiresAt: content.expiresAt?.toISOString() ?? null,
 		createdAt: content.createdAt.toISOString(),
 		uploadedBy: content.uploadedBy,

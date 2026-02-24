@@ -11,7 +11,7 @@ import {
 	StorageLimitError,
 } from '@/lib/validation';
 import { saveFile, deleteFile } from '@/lib/storage';
-import { generateAndSavePreview, deletePreview } from '@/lib/preview';
+import { generateAndSavePreview, deletePreview, getImageDimensions, isPreviewable } from '@/lib/preview';
 import { v4 as uuidv4 } from 'uuid';
 import { lookup } from 'mime-types';
 import { DEFAULT_EXPIRY_HOURS } from '@/lib/config';
@@ -84,6 +84,17 @@ export async function POST(req: NextRequest) {
 		// Generate low-res preview for images (best-effort)
 		previewPath = await generateAndSavePreview(buffer, mimeType, storedFilename);
 
+		// Image dimensions for metadata (images only)
+		let imageWidth: number | null = null;
+		let imageHeight: number | null = null;
+		if (isPreviewable(mimeType)) {
+			const dims = await getImageDimensions(buffer);
+			if (dims) {
+				imageWidth = dims.width;
+				imageHeight = dims.height;
+			}
+		}
+
 		// Atomic: re-check storage limit + create DB record in a transaction
 		const content = await createContentWithStorageCheck(userId, role, {
 			id: contentId,
@@ -94,6 +105,8 @@ export async function POST(req: NextRequest) {
 			fileSize: file.size,
 			fileExtension: extResult.extension,
 			mimeType,
+			imageWidth,
+			imageHeight,
 			expiresAt: expiryResult.expiresAt,
 			uploadedById: userId,
 		});
