@@ -21,7 +21,7 @@ import { useAccent } from '@/components/accent-provider';
 import { ACCENTS, ACCENT_DISPLAY_ORDER, type AccentName } from '@/lib/accents';
 import { getBaseUrl } from '@/lib/url';
 
-const emptySubscribe = () => () => { };
+const emptySubscribe = () => () => {};
 
 const ACCENT_GRID_COLS = 7;
 
