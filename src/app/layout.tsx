@@ -6,6 +6,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { SkipLink } from '@/components/skip-link';
 import { KeyboardShortcuts } from '@/components/keyboard-shortcuts';
+import { LastUploadProvider } from '@/components/last-upload-context';
+import { ContentPageCopyProvider } from '@/components/content-page-copy-context';
 import { ACCENTS } from '@/lib/accents';
 import './globals.css';
 
@@ -38,15 +40,19 @@ export default function RootLayout({
 				<ThemeProvider>
 					<AccentProvider>
 						<AuthProvider>
-							<TooltipProvider>
-								<SkipLink />
-								<div className="min-h-screen flex flex-col">
-									<div className="grow">{children}</div>
-									<Footer />
-								</div>
-								<KeyboardShortcuts />
-								<Toaster />
-							</TooltipProvider>
+							<LastUploadProvider>
+								<ContentPageCopyProvider>
+									<TooltipProvider>
+										<SkipLink />
+										<div className="min-h-screen flex flex-col">
+											<div className="grow">{children}</div>
+											<Footer />
+										</div>
+										<KeyboardShortcuts />
+										<Toaster />
+									</TooltipProvider>
+								</ContentPageCopyProvider>
+							</LastUploadProvider>
 						</AuthProvider>
 					</AccentProvider>
 				</ThemeProvider>

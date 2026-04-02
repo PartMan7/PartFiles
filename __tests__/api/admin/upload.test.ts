@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { POST } from '@/app/api/admin/upload/route';
 import { mockAdmin, mockUploader, mockGuest, mockUnauthenticated, mockPrisma, mockPreview } from '../../setup';
-import { uploadRequest, parseResponse } from '../../helpers';
+import { uploadRequest, uploadRequestMulti, parseResponse } from '../../helpers';
+import { mockId } from '../../setup';
 
 describe('POST /api/admin/upload', () => {
 	const validFile = { name: 'report.pdf', content: 'fake-pdf-data', type: 'application/pdf' };
@@ -163,6 +164,41 @@ describe('POST /api/admin/upload', () => {
 			const req = uploadRequest('/api/admin/upload', {}, validFile);
 			const { status } = await parseResponse(await POST(req));
 			expect(status).toBe(200);
+		});
+	});
+
+	describe('multi-file upload', () => {
+		beforeEach(() => {
+			mockAdmin();
+			mockPrisma.content.aggregate.mockResolvedValue({ _sum: { fileSize: 0 }, _count: 0 });
+		});
+
+		it('accepts multiple files and returns contents array with rawUrl', async () => {
+			mockId.generateContentId.mockResolvedValueOnce('id-one').mockResolvedValueOnce('id-two');
+			const req = uploadRequestMulti('/api/admin/upload', { expiry: '24' }, [
+				validFile,
+				{ name: 'other.pdf', content: 'other-pdf', type: 'application/pdf' },
+			]);
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			expect(body?.success).toBe(true);
+			const contents = body?.contents as Record<string, unknown>[];
+			expect(contents).toHaveLength(2);
+			expect(contents[0].rawUrl).toMatch(/\/r\/id-one$/);
+			expect(contents[1].rawUrl).toMatch(/\/r\/id-two$/);
+			expect(mockPrisma.content.create).toHaveBeenCalledTimes(2);
+		});
+
+		it('rejects short slug when multiple files are uploaded', async () => {
+			mockPrisma.content.create.mockClear();
+			const req = uploadRequestMulti('/api/admin/upload', { expiry: 'off', shortSlug: 'my-batch' }, [
+				validFile,
+				{ name: 'b.pdf', content: 'x', type: 'application/pdf' },
+			]);
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(400);
+			expect(String(body?.error)).toContain('single file');
+			expect(mockPrisma.content.create).not.toHaveBeenCalled();
 		});
 	});
 });

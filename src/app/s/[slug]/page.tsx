@@ -19,7 +19,7 @@ export default async function ShortViewPage({ params }: ShortViewProps) {
 		include: {
 			content: {
 				include: {
-					uploadedBy: { select: { username: true } },
+					uploadedBy: { select: { username: true, role: true } },
 					shortSlugs: { select: { slug: true } },
 				},
 			},
@@ -42,6 +42,7 @@ export default async function ShortViewPage({ params }: ShortViewProps) {
 		expiresAt: content.expiresAt?.toISOString() ?? null,
 		createdAt: content.createdAt.toISOString(),
 		uploadedBy: content.uploadedBy,
+		guestUpload: content.uploadedBy.role === 'guest',
 		shortSlugs: content.shortSlugs,
 	};
 

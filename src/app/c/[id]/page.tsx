@@ -17,7 +17,7 @@ export default async function ContentViewPage({ params }: ContentViewProps) {
 	const content = await prisma.content.findUnique({
 		where: { id },
 		include: {
-			uploadedBy: { select: { username: true } },
+			uploadedBy: { select: { username: true, role: true } },
 			shortSlugs: { select: { slug: true } },
 		},
 	});
@@ -37,6 +37,7 @@ export default async function ContentViewPage({ params }: ContentViewProps) {
 		expiresAt: content.expiresAt?.toISOString() ?? null,
 		createdAt: content.createdAt.toISOString(),
 		uploadedBy: content.uploadedBy,
+		guestUpload: content.uploadedBy.role === 'guest',
 		shortSlugs: content.shortSlugs,
 	};
 

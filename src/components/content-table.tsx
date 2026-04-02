@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { ClientDateYmd } from '@/components/client-date-ymd';
 
 interface ContentItem {
 	id: string;
@@ -539,6 +540,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 								<TableCell className="font-medium max-w-48 truncate">
 									<Link
 										href={`${contentBaseUrl}/c/${item.id}`}
+										target="_blank"
 										className="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-sm"
 									>
 										{item.filename}
@@ -605,14 +607,18 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 										isExpired(item.expiresAt) ? (
 											<Badge variant="destructive">Expired</Badge>
 										) : (
-											<span className="text-sm">{new Date(item.expiresAt).toLocaleString()}</span>
+											<span className="text-sm">
+												<ClientDateYmd iso={item.expiresAt} />
+											</span>
 										)
 									) : (
 										<Badge>Permanent</Badge>
 									)}
 								</TableCell>
 								{/* Created */}
-								<TableCell className="text-sm">{new Date(item.createdAt).toLocaleDateString()}</TableCell>
+								<TableCell className="text-sm">
+									<ClientDateYmd iso={item.createdAt} />
+								</TableCell>
 								{/* Short URLs */}
 								<TableCell>
 									<div className="flex flex-col gap-1">

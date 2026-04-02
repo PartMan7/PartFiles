@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { POST } from '@/app/api/upload/route';
+import { GET as GET_UPLOAD_QUOTA } from '@/app/api/upload/quota/route';
 import { mockAdmin, mockUploader, mockGuest, mockUnauthenticated, mockPrisma } from '../setup';
-import { uploadRequest, parseResponse } from '../helpers';
+import { uploadRequest, uploadRequestMulti, parseResponse } from '../helpers';
+import { mockId } from '../setup';
 
 describe('POST /api/upload', () => {
 	const validFile = { name: 'photo.jpg', content: 'fake-image-data', type: 'image/jpeg' };
@@ -15,12 +17,13 @@ describe('POST /api/upload', () => {
 			expect(body?.error).toBe('Unauthorized');
 		});
 
-		it('returns 403 for guest role', async () => {
+		it('allows guest role with limited quota', async () => {
 			mockGuest();
+			mockPrisma.content.aggregate.mockResolvedValue({ _sum: { fileSize: 0 }, _count: 0 });
 			const req = uploadRequest('/api/upload', { expiry: '1' }, validFile);
 			const { status, body } = await parseResponse(await POST(req));
-			expect(status).toBe(403);
-			expect(body?.error).toContain('insufficient permissions');
+			expect(status).toBe(200);
+			expect(body?.success).toBe(true);
 		});
 
 		it('allows uploader role', async () => {
@@ -44,6 +47,20 @@ describe('POST /api/upload', () => {
 
 	describe('file validation', () => {
 		beforeEach(() => mockUploader());
+
+		it('rejects guest uploads over 10MB per file', async () => {
+			mockGuest();
+			mockPrisma.content.aggregate.mockResolvedValue({ _sum: { fileSize: 0 }, _count: 0 });
+			const big = {
+				name: 'big.jpg',
+				content: 'x'.repeat(11 * 1024 * 1024),
+				type: 'image/jpeg',
+			};
+			const req = uploadRequest('/api/upload', { expiry: '1' }, big);
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(400);
+			expect(body?.error).toContain('10MB');
+		});
 
 		it('returns 400 when no file is provided', async () => {
 			mockPrisma.content.aggregate.mockResolvedValue({ _sum: { fileSize: 0 }, _count: 0 });
@@ -143,6 +160,42 @@ describe('POST /api/upload', () => {
 			expect(status).toBe(400);
 			expect(body?.error).toContain('Storage limit exceeded');
 		});
+
+		it('rejects a multi-file batch when combined size would exceed the limit (before any write)', async () => {
+			mockUploader();
+			mockPrisma.content.aggregate.mockResolvedValue({
+				_sum: { fileSize: 499 * 1024 * 1024 },
+				_count: 10,
+			});
+			mockPrisma.content.create.mockClear();
+			const oneMb = 'x'.repeat(1024 * 1024);
+			const req = uploadRequestMulti('/api/upload', { expiry: '1' }, [
+				{ name: 'a.jpg', content: oneMb, type: 'image/jpeg' },
+				{ name: 'b.jpg', content: oneMb, type: 'image/jpeg' },
+			]);
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(400);
+			expect(body?.error).toContain('Storage limit exceeded');
+			expect(mockPrisma.content.create).not.toHaveBeenCalled();
+		});
+
+		it('accepts a multi-file batch when combined size fits within the limit', async () => {
+			mockUploader();
+			mockPrisma.content.aggregate.mockResolvedValue({
+				_sum: { fileSize: 498 * 1024 * 1024 },
+				_count: 5,
+			});
+			mockId.generateContentId.mockResolvedValueOnce('aaaaaaaa').mockResolvedValueOnce('bbbbbbbb');
+			const oneMb = 'x'.repeat(1024 * 1024);
+			const req = uploadRequestMulti('/api/upload', { expiry: '1' }, [
+				{ name: 'a.jpg', content: oneMb, type: 'image/jpeg' },
+				{ name: 'b.jpg', content: oneMb, type: 'image/jpeg' },
+			]);
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			expect(body?.success).toBe(true);
+			expect(mockPrisma.content.create).toHaveBeenCalledTimes(2);
+		});
 	});
 
 	describe('successful upload', () => {
@@ -156,7 +209,27 @@ describe('POST /api/upload', () => {
 			const content = body?.content as Record<string, unknown>;
 			expect(content.id).toBeDefined();
 			expect(content.url).toMatch(/\/c\//);
+			expect(content.rawUrl).toMatch(/\/r\/[^/]+$/);
 			expect(content.filename).toBeDefined();
+		});
+
+		it('accepts multiple files and returns contents array', async () => {
+			mockUploader();
+			mockPrisma.content.aggregate.mockResolvedValue({ _sum: { fileSize: 0 }, _count: 0 });
+			mockId.generateContentId.mockResolvedValueOnce('aaaaaaaa').mockResolvedValueOnce('bbbbbbbb');
+			const req = uploadRequestMulti('/api/upload', { expiry: '1' }, [
+				validFile,
+				{ name: 'b.png', content: 'fake-png', type: 'image/png' },
+			]);
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			expect(body?.success).toBe(true);
+			const contents = body?.contents as Record<string, unknown>[];
+			expect(Array.isArray(contents)).toBe(true);
+			expect(contents).toHaveLength(2);
+			expect(contents[0].rawUrl).toMatch(/\/r\/aaaaaaaa$/);
+			expect(contents[1].rawUrl).toMatch(/\/r\/bbbbbbbb$/);
+			expect(mockPrisma.content.create).toHaveBeenCalledTimes(2);
 		});
 
 		it('uses short generated ID from generateContentId', async () => {
@@ -179,5 +252,43 @@ describe('POST /api/upload', () => {
 			const callData = mockPrisma.content.create.mock.calls[0][0].data;
 			expect(callData.id).toBe('ab12cd34');
 		});
+	});
+});
+
+describe('GET /api/upload/quota', () => {
+	it('returns 401 when unauthenticated', async () => {
+		mockUnauthenticated();
+		const res = await GET_UPLOAD_QUOTA();
+		expect(res.status).toBe(401);
+	});
+
+	it('returns quota fields for guest (10MB caps)', async () => {
+		mockGuest();
+		mockPrisma.content.aggregate.mockResolvedValue({
+			_sum: { fileSize: 2 * 1024 * 1024 },
+			_count: 2,
+		});
+		const res = await GET_UPLOAD_QUOTA();
+		const body = (await res.json()) as Record<string, unknown>;
+		expect(res.status).toBe(200);
+		expect(body.usedBytes).toBe(2 * 1024 * 1024);
+		expect(body.limitBytes).toBe(10 * 1024 * 1024);
+		expect(body.remainingBytes).toBe(8 * 1024 * 1024);
+		expect(body.maxFileSizeBytes).toBe(10 * 1024 * 1024);
+	});
+
+	it('returns quota fields for uploader', async () => {
+		mockUploader();
+		mockPrisma.content.aggregate.mockResolvedValue({
+			_sum: { fileSize: 10 * 1024 * 1024 },
+			_count: 3,
+		});
+		const res = await GET_UPLOAD_QUOTA();
+		const body = (await res.json()) as Record<string, unknown>;
+		expect(res.status).toBe(200);
+		expect(body.usedBytes).toBe(10 * 1024 * 1024);
+		expect(body.limitBytes).toBe(500 * 1024 * 1024);
+		expect(body.remainingBytes).toBe(490 * 1024 * 1024);
+		expect(body.maxFileSizeBytes).toBe(100 * 1024 * 1024);
 	});
 });

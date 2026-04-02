@@ -5,14 +5,21 @@ export const ROLES = ['admin', 'uploader', 'guest'] as const;
 export type Role = (typeof ROLES)[number];
 
 // --- Storage limits (bytes) ---
+export const GUEST_STORAGE_LIMIT_BYTES = 10 * 1024 * 1024; // 10 MB total for self-serve guests
+
 export const STORAGE_LIMITS: Record<string, number> = {
 	admin: 2 * 1024 * 1024 * 1024, // 2 GB
 	uploader: 500 * 1024 * 1024, // 500 MB
-	guest: 0, // Guests cannot upload
+	guest: GUEST_STORAGE_LIMIT_BYTES,
 };
 
 // --- Per-file size limit ---
-export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB per file
+export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB per file (admin / uploader)
+export const GUEST_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB per file for guests
+
+export function maxUploadFileSizeBytesForRole(role: string): number {
+	return role === 'guest' ? GUEST_MAX_FILE_SIZE_BYTES : MAX_FILE_SIZE;
+}
 
 // --- Expiry constraints ---
 export const MAX_EXPIRY_HOURS_UPLOADER = 168; // 7 days in hours

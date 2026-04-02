@@ -1,5 +1,31 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeFilename, validateExtension, validateFileSize, validateExpiry, validateShortSlug } from '@/lib/validation';
+import {
+	sanitizeFilename,
+	validateExtension,
+	validateFileSize,
+	validateExpiry,
+	validateShortSlug,
+	validatePasswordForStorage,
+	MAX_PASSWORD_LENGTH,
+} from '@/lib/validation';
+
+describe('validatePasswordForStorage', () => {
+	it('rejects short passwords', () => {
+		const r = validatePasswordForStorage('short');
+		expect(r.valid).toBe(false);
+		expect(r.valid ? '' : r.error).toContain('at least');
+	});
+
+	it('rejects passwords over max length', () => {
+		const r = validatePasswordForStorage('a'.repeat(MAX_PASSWORD_LENGTH + 1));
+		expect(r.valid).toBe(false);
+		expect(r.valid ? '' : r.error).toContain('at most');
+	});
+
+	it('accepts boundary-length password', () => {
+		expect(validatePasswordForStorage('a'.repeat(MAX_PASSWORD_LENGTH))).toEqual({ valid: true });
+	});
+});
 
 describe('sanitizeFilename', () => {
 	it('passes through a normal filename', () => {

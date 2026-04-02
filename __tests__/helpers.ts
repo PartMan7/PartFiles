@@ -37,6 +37,28 @@ export function uploadRequest(
 }
 
 /**
+ * Create a NextRequest with FormData containing multiple files under `files`.
+ */
+export function uploadRequestMulti(
+	url: string,
+	fields: Record<string, string>,
+	files: { name: string; content: string; type?: string }[]
+): NextRequest {
+	const formData = new FormData();
+	for (const f of files) {
+		const blob = new Blob([f.content], { type: f.type || 'application/octet-stream' });
+		formData.append('files', new File([blob], f.name, { type: f.type }));
+	}
+	for (const [key, value] of Object.entries(fields)) {
+		formData.append(key, value);
+	}
+	return new NextRequest(new URL(url, 'http://localhost:3000'), {
+		method: 'POST',
+		body: formData,
+	});
+}
+
+/**
  * Create a NextRequest with custom headers.
  */
 export function requestWithHeaders(url: string, method: string, headers: Record<string, string>): NextRequest {

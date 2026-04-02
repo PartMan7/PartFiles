@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore
 import { useRouter, usePathname } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { useLastUpload } from '@/components/last-upload-context';
+import { useContentPageCopyInfo } from '@/components/content-page-copy-context';
+import { persistUploadMode, readStoredUploadMode, uploadHrefForMode } from '@/lib/upload-mode-preference';
+import { toast } from 'sonner';
 
 interface Shortcut {
 	keys: string[];
@@ -38,6 +42,21 @@ const KBD_CLASSES =
 const KBD_SMALL_CLASSES =
 	'inline-flex h-5 min-w-5 items-center justify-center rounded border border-border bg-muted px-1 text-[10px] font-medium';
 
+type AppRouterLike = {
+	push: (href: string) => void;
+	replace: (href: string, options?: { scroll?: boolean }) => void;
+};
+
+function navigateToUploadTab(router: AppRouterLike, pathname: string, wantShare: boolean) {
+	const path = uploadHrefForMode(wantShare ? 'share' : 'store');
+	const onUpload = pathname === '/upload';
+	const urlHasShare = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'share';
+	const atShareTab = onUpload && urlHasShare;
+	if (onUpload && atShareTab === wantShare) return;
+	if (onUpload) router.replace(path, { scroll: false });
+	else router.push(path);
+}
+
 export function KeyboardShortcuts() {
 	const [open, setOpen] = useState(false);
 	const openRef = useRef(false);
@@ -45,6 +64,17 @@ export function KeyboardShortcuts() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const mod = useModKey();
+	const { lastRawUrls, lastUploadedContentUrls, setLastUploadedContentUrls } = useLastUpload();
+	const contentPageInfo = useContentPageCopyInfo();
+	const prevPathnameRef = useRef(pathname);
+
+	useEffect(() => {
+		const prev = prevPathnameRef.current;
+		prevPathnameRef.current = pathname;
+		if (prev === '/upload' && pathname !== '/upload') {
+			setLastUploadedContentUrls([]);
+		}
+	}, [pathname, setLastUploadedContentUrls]);
 
 	useEffect(() => {
 		openRef.current = open;
@@ -55,33 +85,49 @@ export function KeyboardShortcuts() {
 		}
 	}, [open]);
 
-	const shortcutGroups: ShortcutGroup[] = useMemo(
-		() => [
-			{
-				title: 'General',
-				shortcuts: [{ keys: [mod, '/'], label: 'Show keyboard shortcuts' }],
-			},
-			{
-				title: 'Navigation',
-				shortcuts: [
-					{ keys: ['U'], label: 'Go to Upload' },
-					{ keys: ['D'], label: 'Go to Dashboard' },
-					{ keys: ['C'], label: 'Go to Content (admin)' },
-					{ keys: ['W'], label: 'Go to Users (admin)' },
-				],
-			},
-			{
-				title: 'Accessibility',
-				shortcuts: [
-					{ keys: ['Tab'], label: 'Move focus to next element' },
-					{ keys: ['Shift', 'Tab'], label: 'Move focus to previous element' },
-					{ keys: ['Enter'], label: 'Activate focused element' },
-					{ keys: ['Escape'], label: 'Close dialog / dropdown' },
-				],
-			},
-		],
-		[mod]
-	);
+	const shortcutGroups: ShortcutGroup[] = useMemo(() => {
+		const navigation: ShortcutGroup = {
+			title: 'Navigation',
+			shortcuts: [
+				{ keys: ['Shift', 'U'], label: 'Go to Upload (Quick Share or Store — last tab preference)' },
+				{ keys: ['Shift', 'Q'], label: 'Go to Quick Share (updates saved tab)' },
+				{ keys: ['Shift', 'S'], label: 'Go to Store Files (updates saved tab)' },
+				{ keys: ['Shift', 'D'], label: 'Go to Dashboard' },
+				{ keys: ['Shift', 'C'], label: 'Go to Content (admin)' },
+				{ keys: ['Shift', 'W'], label: 'Go to Users (admin)' },
+			],
+		};
+
+		const copyUrl: ShortcutGroup = {
+			title: 'Copy URL',
+			shortcuts: [
+				{ keys: ['R'], label: 'Copy raw URL (file page or last upload)' },
+				{
+					keys: ['C'],
+					label: 'Copy current page URL (on Upload after a run: last uploaded content URL(s))',
+				},
+				{ keys: ['S'], label: 'Copy short /s/ URL(s) when available' },
+				{ keys: ['E'], label: 'Copy embed /e/ URL(s) when available' },
+			],
+		};
+
+		const general: ShortcutGroup = {
+			title: 'General',
+			shortcuts: [{ keys: [mod, '/'], label: 'Show keyboard shortcuts' }],
+		};
+
+		const accessibility: ShortcutGroup = {
+			title: 'Accessibility',
+			shortcuts: [
+				{ keys: ['Tab'], label: 'Move focus to next element' },
+				{ keys: ['Shift', 'Tab'], label: 'Move focus to previous element' },
+				{ keys: ['Enter'], label: 'Activate focused element' },
+				{ keys: ['Escape'], label: 'Close dialog / dropdown' },
+			],
+		};
+
+		return [general, copyUrl, navigation, accessibility];
+	}, [mod]);
 
 	const handleGlobalKeyDown = useCallback(
 		(e: KeyboardEvent) => {
@@ -100,25 +146,115 @@ export function KeyboardShortcuts() {
 				return;
 			}
 
-			// Don't process navigation shortcuts when in an input or when a modifier is held
 			if (isInput) return;
-			if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-			// Single-key navigation
-			const routes: Record<string, string> = {
-				u: '/upload',
-				d: '/dashboard',
-				c: '/admin/content',
-				w: '/admin/users',
-			};
+			const key = e.key.length === 1 ? e.key.toLowerCase() : '';
+			const noMod = !e.ctrlKey && !e.metaKey && !e.altKey;
 
-			const route = routes[e.key.toLowerCase()];
-			if (route && route !== pathname) {
-				e.preventDefault();
-				router.push(route);
+			// Shift+letter navigation (avoid clashing with browser / typing)
+			if (e.shiftKey && noMod) {
+				if (key === 'q') {
+					e.preventDefault();
+					persistUploadMode('share');
+					navigateToUploadTab(router, pathname, true);
+					return;
+				}
+				if (key === 's') {
+					e.preventDefault();
+					persistUploadMode('store');
+					navigateToUploadTab(router, pathname, false);
+					return;
+				}
+				if (key === 'u') {
+					e.preventDefault();
+					const mode = readStoredUploadMode() ?? 'store';
+					navigateToUploadTab(router, pathname, mode === 'share');
+					return;
+				}
+				if (['d', 'c', 'w'].includes(key)) {
+					const routes: Record<string, string> = {
+						d: '/dashboard',
+						c: '/admin/content',
+						w: '/admin/users',
+					};
+					const route = routes[key];
+					if (route && route !== pathname) {
+						e.preventDefault();
+						router.push(route);
+					}
+					return;
+				}
+			}
+
+			// Single-letter copy URLs (no Shift / Ctrl / Cmd / Alt)
+			if (!e.shiftKey && noMod && ['r', 'c', 's', 'e'].includes(key)) {
+				const copy = (text: string, success: string) => {
+					e.preventDefault();
+					void navigator.clipboard.writeText(text).then(
+						() => toast.success(success),
+						() => toast.error('Could not copy to clipboard')
+					);
+				};
+
+				if (key === 'c') {
+					const onUploadPage = pathname === '/upload';
+					if (onUploadPage && lastUploadedContentUrls.length) {
+						copy(
+							lastUploadedContentUrls.join('\n'),
+							lastUploadedContentUrls.length > 1 ? 'Content URLs copied' : 'Content URL copied'
+						);
+					} else {
+						copy(typeof window !== 'undefined' ? window.location.href : '', 'Current URL copied');
+					}
+					return;
+				}
+
+				const page = contentPageInfo;
+
+				if (key === 'r') {
+					if (page) {
+						copy(`${page.contentBaseUrl}/r/${page.contentId}`, 'Raw URL copied');
+					} else if (lastRawUrls.length) {
+						e.preventDefault();
+						void navigator.clipboard.writeText(lastRawUrls.join('\n')).then(
+							() => {
+								toast.success(lastRawUrls.length > 1 ? 'Raw URLs copied' : 'Raw URL copied');
+							},
+							() => toast.error('Could not copy to clipboard')
+						);
+					} else {
+						e.preventDefault();
+						toast.error('No raw URL — open a file page or upload first');
+					}
+					return;
+				}
+
+				if (key === 's') {
+					if (page?.shortSlugs.length) {
+						const base = page.contentBaseUrl;
+						const text = page.shortSlugs.map(slug => `${base}/s/${slug}`).join('\n');
+						copy(text, page.shortSlugs.length > 1 ? 'Short URLs copied' : 'Short URL copied');
+					} else {
+						e.preventDefault();
+						toast.error('No short URLs on this page');
+					}
+					return;
+				}
+
+				if (key === 'e') {
+					if (page?.shortSlugs.length) {
+						const base = page.contentBaseUrl;
+						const text = page.shortSlugs.map(slug => `${base}/e/${slug}`).join('\n');
+						copy(text, page.shortSlugs.length > 1 ? 'Embed URLs copied' : 'Embed URL copied');
+					} else {
+						e.preventDefault();
+						toast.error('No embed URL — add a short slug on this file');
+					}
+					return;
+				}
 			}
 		},
-		[router, pathname]
+		[router, pathname, lastRawUrls, lastUploadedContentUrls, contentPageInfo]
 	);
 
 	useEffect(() => {

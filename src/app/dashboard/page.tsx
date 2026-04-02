@@ -5,9 +5,10 @@ import { Nav } from '@/components/nav';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { STORAGE_LIMITS } from '@/lib/config';
-import { canUpload, isAdmin } from '@/lib/permissions';
+import { canUpload, isAdmin, isGuestRole } from '@/lib/permissions';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { GuestUpgradeCta } from '@/components/guest-upgrade-cta';
 
 export default async function DashboardPage() {
 	const session = await auth();
@@ -44,6 +45,18 @@ export default async function DashboardPage() {
 			<Nav role={role} username={username ?? 'Unknown'} />
 			<main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+
+				{isGuestRole(role) && (
+					<Card className="mb-8 border-primary/25 bg-primary/5">
+						<CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+							<div className="space-y-1">
+								<p className="font-semibold text-lg">Need more storage?</p>
+								<p className="text-sm text-muted-foreground">You can ask us to review your account for an upgrade.</p>
+							</div>
+							<GuestUpgradeCta />
+						</CardContent>
+					</Card>
+				)}
 
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{/* User Info */}

@@ -38,7 +38,7 @@ describe('permissions', () => {
 	describe('canUpload', () => {
 		it('admin can upload', () => expect(canUpload('admin')).toBe(true));
 		it('uploader can upload', () => expect(canUpload('uploader')).toBe(true));
-		it('guest cannot upload', () => expect(canUpload('guest')).toBe(false));
+		it('guest can upload with limited quota', () => expect(canUpload('guest')).toBe(true));
 	});
 
 	describe('isAdmin', () => {

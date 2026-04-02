@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashSync } from 'bcryptjs';
+import { validatePasswordForStorage } from '@/lib/validation';
 
 /**
  * GET  — Validate an invite token (used by the frontend to pre-check).
@@ -49,8 +50,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 			return NextResponse.json({ error: 'Password is required' }, { status: 400 });
 		}
 
-		if (password.length < 8) {
-			return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+		const pw = validatePasswordForStorage(password);
+		if (!pw.valid) {
+			return NextResponse.json({ error: pw.error }, { status: 400 });
 		}
 
 		const invite = await prisma.inviteToken.findUnique({

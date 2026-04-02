@@ -14,8 +14,14 @@ interface FileDropZoneProps {
 	required?: boolean;
 	/** Passed through to the drop-zone for screen readers */
 	'aria-required'?: boolean | 'true' | 'false';
-	/** Called whenever the selected file changes (including clear) */
+	/** Called whenever the selected file changes (including clear) — single-file mode */
 	onFileChange?: (file: File | null) => void;
+	/** Multiple selection; uses `name` default `files` when unset */
+	multiple?: boolean;
+	/** Called whenever the selected files change — multi-file mode */
+	onFilesChange?: (files: File[]) => void;
+	/** Fired after a non-empty file was applied from a clipboard paste */
+	onPastedFiles?: () => void;
 }
 
 function formatSize(bytes: number): string {
@@ -24,25 +30,66 @@ function formatSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function FileDropZone({ inputRef: externalRef, name = 'file', id, required, onFileChange }: FileDropZoneProps) {
+function fileListToArray(list: FileList | File[]): File[] {
+	return Array.from(list);
+}
+
+export function FileDropZone({
+	inputRef: externalRef,
+	name,
+	id,
+	required,
+	onFileChange,
+	multiple = false,
+	onFilesChange,
+	onPastedFiles,
+}: FileDropZoneProps) {
 	const internalRef = useRef<HTMLInputElement>(null);
 	const fileInputRef = externalRef ?? internalRef;
 	const zoneRef = useRef<HTMLDivElement>(null);
+	const onPastedFilesRef = useRef(onPastedFiles);
+	onPastedFilesRef.current = onPastedFiles;
+
+	const inputName = name ?? (multiple ? 'files' : 'file');
 
 	const [dragging, setDragging] = useState(false);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+	const selectedFilesRef = useRef<File[]>([]);
+	selectedFilesRef.current = selectedFiles;
 	const dragCounter = useRef(0);
 
-	/** Apply a file to the hidden input and update state */
-	function applyFile(file: File) {
-		// Set the file on the hidden input via DataTransfer
+	function syncInputFiles(files: File[]) {
 		const dt = new DataTransfer();
-		dt.items.add(file);
+		for (const f of files) {
+			dt.items.add(f);
+		}
 		if (fileInputRef.current) {
 			fileInputRef.current.files = dt.files;
 		}
+	}
+
+	/** Apply file(s) to the hidden input and update state */
+	function applyFile(file: File) {
+		syncInputFiles([file]);
 		setSelectedFile(file);
+		setSelectedFiles([file]);
 		onFileChange?.(file);
+		onFilesChange?.([file]);
+	}
+
+	function applyFilesFromList(list: FileList | File[]) {
+		const arr = fileListToArray(list).filter(f => f.size > 0);
+		if (arr.length === 0) return;
+		if (multiple) {
+			syncInputFiles(arr);
+			setSelectedFile(null);
+			setSelectedFiles(arr);
+			onFileChange?.(null);
+			onFilesChange?.(arr);
+		} else {
+			applyFile(arr[0]);
+		}
 	}
 
 	function clearFile() {
@@ -50,7 +97,24 @@ export function FileDropZone({ inputRef: externalRef, name = 'file', id, require
 			fileInputRef.current.value = '';
 		}
 		setSelectedFile(null);
+		setSelectedFiles([]);
 		onFileChange?.(null);
+		onFilesChange?.([]);
+	}
+
+	function removeAtIndex(index: number) {
+		if (!multiple) {
+			clearFile();
+			return;
+		}
+		const next = selectedFiles.filter((_, i) => i !== index);
+		if (next.length === 0) {
+			clearFile();
+		} else {
+			syncInputFiles(next);
+			setSelectedFiles(next);
+			onFilesChange?.(next);
+		}
 	}
 
 	/* ── Drag & Drop ─────────────────────────────────────────────────────── */
@@ -83,14 +147,13 @@ export function FileDropZone({ inputRef: externalRef, name = 'file', id, require
 		dragCounter.current = 0;
 		setDragging(false);
 
-		const file = e.dataTransfer.files?.[0];
-		if (file) applyFile(file);
+		const list = e.dataTransfer.files;
+		if (list?.length) applyFilesFromList(list);
 	}
 
 	/* ── Clipboard paste (global) ────────────────────────────────────────── */
 	useEffect(() => {
 		function handlePaste(e: ClipboardEvent) {
-			// Don't intercept if user is typing in an input/textarea
 			const target = e.target as HTMLElement;
 			if (target.tagName === 'INPUT' && (target as HTMLInputElement).type !== 'file' && (target as HTMLInputElement).type !== 'hidden')
 				return;
@@ -104,7 +167,23 @@ export function FileDropZone({ inputRef: externalRef, name = 'file', id, require
 					const file = item.getAsFile();
 					if (file) {
 						e.preventDefault();
-						applyFile(file);
+						let applied = false;
+						if (multiple && selectedFilesRef.current.length > 0) {
+							const next = [...selectedFilesRef.current, file].filter(f => f.size > 0);
+							if (next.length) {
+								applyFilesFromList(next);
+								applied = true;
+							}
+						} else if (multiple) {
+							if (file.size > 0) {
+								applyFilesFromList([file]);
+								applied = true;
+							}
+						} else if (file.size > 0) {
+							applyFile(file);
+							applied = true;
+						}
+						if (applied) onPastedFilesRef.current?.();
 						return;
 					}
 				}
@@ -121,9 +200,12 @@ export function FileDropZone({ inputRef: externalRef, name = 'file', id, require
 	}
 
 	function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-		const file = e.target.files?.[0] ?? null;
-		setSelectedFile(file);
-		onFileChange?.(file);
+		const list = e.target.files;
+		if (!list?.length) {
+			clearFile();
+			return;
+		}
+		applyFilesFromList(list);
 	}
 
 	function handleKeyDown(e: React.KeyboardEvent) {
@@ -133,30 +215,36 @@ export function FileDropZone({ inputRef: externalRef, name = 'file', id, require
 		}
 	}
 
+	const hasSelection = multiple ? selectedFiles.length > 0 : selectedFile !== null;
+	const count = multiple ? selectedFiles.length : selectedFile ? 1 : 0;
+
 	return (
 		<div className="space-y-2">
-			{/* Hidden native file input */}
 			<input
 				ref={fileInputRef}
 				type="file"
-				name={name}
+				name={inputName}
 				id={id}
-				required={required && !selectedFile}
+				multiple={multiple}
+				required={required && !hasSelection}
 				className="sr-only"
 				tabIndex={-1}
 				onChange={handleInputChange}
 				aria-hidden="true"
 			/>
 
-			{/* Drop zone */}
 			<div
 				ref={zoneRef}
 				role="button"
 				tabIndex={0}
 				aria-label={
-					selectedFile
-						? `Selected file: ${selectedFile.name}. Click to change file, or drag and drop, or paste from clipboard.`
-						: 'Choose a file. Click to browse, drag and drop, or paste from clipboard.'
+					hasSelection
+						? multiple
+							? `${count} files selected. Click to change selection, or drag and drop, or paste from clipboard.`
+							: `Selected file: ${selectedFile!.name}. Click to change file, or drag and drop, or paste from clipboard.`
+						: multiple
+							? 'Choose files. Click to browse, drag and drop, or paste from clipboard.'
+							: 'Choose a file. Click to browse, drag and drop, or paste from clipboard.'
 				}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
@@ -169,13 +257,39 @@ export function FileDropZone({ inputRef: externalRef, name = 'file', id, require
 					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 					dragging
 						? 'border-primary bg-primary/5 text-primary'
-						: selectedFile
+						: hasSelection
 							? 'border-primary/40 bg-primary/5'
 							: 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
 				)}
 			>
-				{selectedFile ? (
-					/* ── File selected state ───────────────────────────────── */
+				{multiple && selectedFiles.length > 0 ? (
+					<div className="flex flex-col gap-2 w-full max-h-48 overflow-y-auto">
+						{selectedFiles.map((f, index) => (
+							<div key={`${f.name}-${index}`} className="flex items-center gap-3 w-full">
+								<div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 shrink-0">
+									<FileIcon className="h-5 w-5 text-primary" aria-hidden="true" />
+								</div>
+								<div className="flex-1 min-w-0">
+									<p className="text-sm font-medium truncate">{f.name}</p>
+									<p className="text-xs text-muted-foreground">{formatSize(f.size)}</p>
+								</div>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="h-8 w-8 p-0 shrink-0"
+									onClick={e => {
+										e.stopPropagation();
+										removeAtIndex(index);
+									}}
+									aria-label={`Remove ${f.name}`}
+								>
+									<X className="h-4 w-4" aria-hidden="true" />
+								</Button>
+							</div>
+						))}
+					</div>
+				) : selectedFile ? (
 					<div className="flex items-center gap-3 w-full">
 						<div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
 							<FileIcon className="h-5 w-5 text-primary" aria-hidden="true" />
@@ -199,7 +313,6 @@ export function FileDropZone({ inputRef: externalRef, name = 'file', id, require
 						</Button>
 					</div>
 				) : (
-					/* ── Empty state ───────────────────────────────────────── */
 					<>
 						{dragging ? (
 							<Upload className="h-8 w-8 text-primary animate-bounce" aria-hidden="true" />
@@ -207,7 +320,9 @@ export function FileDropZone({ inputRef: externalRef, name = 'file', id, require
 							<Upload className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
 						)}
 						<div className="text-center space-y-1">
-							<p className="text-sm font-medium">{dragging ? 'Drop file here' : 'Click to browse, drag & drop'}</p>
+							<p className="text-sm font-medium">
+								{dragging ? 'Drop here' : multiple ? 'Click to browse or drag & drop files' : 'Click to browse, drag & drop'}
+							</p>
 							<p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
 								<ClipboardPaste className="h-3 w-3" aria-hidden="true" />
 								or paste from clipboard

@@ -121,7 +121,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 					return null;
 				}
 
-				const username = (credentials.username as string).toLowerCase();
+				const username = (credentials.username as string).trim();
 				const password = credentials.password as string;
 
 				// SECURITY: Rate limit — reject immediately if locked out

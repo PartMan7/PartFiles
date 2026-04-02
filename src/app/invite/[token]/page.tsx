@@ -134,8 +134,9 @@ export default function InvitePage() {
 										type="password"
 										required
 										minLength={8}
+										maxLength={128}
 										autoComplete="new-password"
-										placeholder="At least 8 characters"
+										placeholder="8–128 characters"
 										aria-required="true"
 									/>
 								</div>
@@ -150,6 +151,7 @@ export default function InvitePage() {
 										type="password"
 										required
 										minLength={8}
+										maxLength={128}
 										autoComplete="new-password"
 										placeholder="Repeat your password"
 										aria-required="true"

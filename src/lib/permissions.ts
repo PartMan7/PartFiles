@@ -17,10 +17,14 @@ export function hasMinRole(userRole: string, minRole: Role): boolean {
 }
 
 /**
- * Check if a user can upload content.
+ * Check if a user can upload content (guests have a small quota; see config).
  */
 export function canUpload(role: string): boolean {
-	return hasMinRole(role, 'uploader');
+	return hasMinRole(role, 'guest');
+}
+
+export function isGuestRole(role: string): boolean {
+	return role === 'guest';
 }
 
 /**

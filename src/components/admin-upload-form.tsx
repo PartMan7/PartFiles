@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileDropZone } from '@/components/file-drop-zone';
 import { RequiredMark } from '@/components/required-mark';
 import { toast } from 'sonner';
+import { useLastUpload } from '@/components/last-upload-context';
+import { type QuotaPayload, fmtMb, clientUploadBlockMessage } from '@/lib/upload-quota-client';
+import { ClientDateYmd } from '@/components/client-date-ymd';
+import { cn } from '@/lib/utils';
+import { X } from 'lucide-react';
 
 const EXPIRY_OPTIONS = [
 	{ value: 'off', label: 'Never (permanent)' },
@@ -28,18 +33,32 @@ interface Directory {
 	path: string;
 }
 
+type AdminResultItem = {
+	id: string;
+	filename: string;
+	directory: string | null;
+	shortSlugs: string[];
+	url: string;
+	shortUrl: string | null;
+	rawUrl: string;
+	expiresAt: string | null;
+};
+
+function parseAdminUploadResponse(data: Record<string, unknown>): AdminResultItem[] {
+	if (Array.isArray(data.contents)) {
+		return data.contents as AdminResultItem[];
+	}
+	if (data.content && typeof data.content === 'object') {
+		return [data.content as AdminResultItem];
+	}
+	return [];
+}
+
 export function AdminUploadForm() {
+	const { setLastRawUrls, setLastUploadedContentUrls } = useLastUpload();
 	const [uploading, setUploading] = useState(false);
 	const [error, setError] = useState('');
-	const [result, setResult] = useState<{
-		id: string;
-		filename: string;
-		directory: string | null;
-		shortSlugs: string[];
-		url: string;
-		shortUrl: string | null;
-		expiresAt: string | null;
-	} | null>(null);
+	const [results, setResults] = useState<AdminResultItem[] | null>(null);
 	const [expiry, setExpiry] = useState('off');
 	const [directory, setDirectory] = useState('');
 	const [directories, setDirectories] = useState<Directory[]>([]);
@@ -47,6 +66,31 @@ export function AdminUploadForm() {
 	const [shortSlug, setShortSlug] = useState('');
 	const [fileResetKey, setFileResetKey] = useState(0);
 	const fileRef = useRef<HTMLInputElement>(null);
+	const [quota, setQuota] = useState<QuotaPayload | null>(null);
+	const [quotaLoadState, setQuotaLoadState] = useState<'loading' | 'ok' | 'error'>('loading');
+	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
+	const loadQuota = useCallback(async () => {
+		setQuotaLoadState('loading');
+		try {
+			const res = await fetch('/api/upload/quota');
+			if (!res.ok) {
+				setQuota(null);
+				setQuotaLoadState('error');
+				return;
+			}
+			const data = (await res.json()) as QuotaPayload;
+			setQuota(data);
+			setQuotaLoadState('ok');
+		} catch {
+			setQuota(null);
+			setQuotaLoadState('error');
+		}
+	}, []);
+
+	useEffect(() => {
+		void loadQuota();
+	}, [loadQuota]);
 
 	useEffect(() => {
 		fetch('/api/directories')
@@ -55,24 +99,61 @@ export function AdminUploadForm() {
 			.catch(() => setDirectories([]));
 	}, []);
 
+	const clientBlock = useMemo(() => (quota ? clientUploadBlockMessage(quota, selectedFiles) : null), [quota, selectedFiles]);
+
+	const submitBlockedByClient = Boolean(quota && clientBlock);
+	const singleFileOnly = selectedFiles.length <= 1;
+
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError('');
-		setResult(null);
+		setResults(null);
 		setUploading(true);
 
 		try {
-			const formData = new FormData(e.currentTarget);
+			const input = fileRef.current;
+			const list = input?.files;
+			if (!list?.length) {
+				setError('Please select at least one file');
+				setUploading(false);
+				return;
+			}
+
+			const files = Array.from(list).filter(f => f.size > 0);
+			if (files.length === 0) {
+				setError('Please select at least one file');
+				setUploading(false);
+				return;
+			}
+
+			if (files.length > 1 && shortSlug.trim()) {
+				setError('Short URL slug can only be set when uploading a single file');
+				setUploading(false);
+				return;
+			}
+
+			if (quota) {
+				const block = clientUploadBlockMessage(quota, files);
+				if (block) {
+					setUploading(false);
+					return;
+				}
+			}
+
+			const formData = new FormData();
 			formData.set('expiry', expiry);
 			if (directory && directory !== '__none__') {
 				formData.set('directory', directory);
 			}
-
-			const file = formData.get('file') as File;
-			if (!file || file.size === 0) {
-				setError('Please select a file');
-				setUploading(false);
-				return;
+			const trimmed = filename.trim();
+			if (files.length === 1 && trimmed) {
+				formData.set('filename', trimmed);
+			}
+			if (files.length === 1 && shortSlug.trim()) {
+				formData.set('shortSlug', shortSlug.trim());
+			}
+			for (const f of files) {
+				formData.append('files', f);
 			}
 
 			const res = await fetch('/api/admin/upload', {
@@ -80,18 +161,30 @@ export function AdminUploadForm() {
 				body: formData,
 			});
 
-			const data = await res.json();
+			const data = (await res.json()) as Record<string, unknown>;
 
 			if (!res.ok) {
-				setError(data.error || 'Upload failed');
+				setError((data.error as string) || 'Upload failed');
 			} else {
-				setResult(data.content);
-				toast.success('File uploaded successfully');
-				// Clear all fields except expiry
+				const items = parseAdminUploadResponse(data);
+				setResults(items);
+
+				const rawUrls = items.map(c => c.rawUrl).filter(Boolean);
+				const pageUrls = items.map(c => c.url).filter(Boolean);
+				if (rawUrls.length) {
+					setLastRawUrls(rawUrls);
+				}
+				if (pageUrls.length) {
+					setLastUploadedContentUrls(pageUrls);
+				}
+
+				toast.success(files.length > 1 ? 'Files uploaded successfully' : 'File uploaded successfully');
 				setFilename('');
 				setShortSlug('');
 				setDirectory('');
 				setFileResetKey(k => k + 1);
+				setSelectedFiles([]);
+				void loadQuota();
 			}
 		} catch {
 			setError('An error occurred during upload');
@@ -103,36 +196,64 @@ export function AdminUploadForm() {
 	return (
 		<div className="space-y-4">
 			<div aria-live="polite" aria-atomic="true">
-				{result && (
+				{results && results.length > 0 && (
 					<Alert>
-						<AlertDescription>
+						<AlertDescription className="relative pr-10">
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon-sm"
+								className="absolute top-0 right-0 text-muted-foreground hover:text-foreground"
+								onClick={() => setResults(null)}
+								aria-label="Dismiss upload success message"
+							>
+								<X className="size-4" aria-hidden />
+							</Button>
 							<p className="font-medium">Upload successful!</p>
-							<p className="text-sm mt-1">
-								File: {result.filename}
-								{result.directory && (
-									<>
-										<br />
-										Directory: {result.directory}
-									</>
-								)}
-								<br />
-								URL:{' '}
-								<a href={result.url} className="text-primary underline" target="_blank" rel="noopener noreferrer">
-									{result.url}
-									<span className="sr-only"> (opens in new tab)</span>
-								</a>
-								{result.shortUrl && (
-									<>
-										<br />
-										Short URL:{' '}
-										<a href={result.shortUrl} className="text-primary underline" target="_blank" rel="noopener noreferrer">
-											{result.shortUrl}
-											<span className="sr-only"> (opens in new tab)</span>
-										</a>
-									</>
-								)}
-								<br />
-								{result.expiresAt ? `Expires: ${new Date(result.expiresAt).toLocaleString()}` : 'Permanent (no expiry)'}
+							<ul className="text-sm mt-2 space-y-3 list-none p-0 m-0">
+								{results.map(r => (
+									<li key={r.id} className="border-b border-border/60 pb-2 last:border-0 last:pb-0">
+										<p className="font-medium text-foreground">{r.filename}</p>
+										{r.directory && <p className="text-muted-foreground text-xs mt-0.5">Directory: {r.directory}</p>}
+										<p className="mt-1">
+											<span className="text-muted-foreground">Page: </span>
+											<a href={r.url} className="text-primary underline" target="_blank" rel="noopener noreferrer">
+												{r.url}
+												<span className="sr-only"> (opens in new tab)</span>
+											</a>
+										</p>
+										{r.shortUrl && (
+											<p className="mt-0.5">
+												<span className="text-muted-foreground">Short URL: </span>
+												<a href={r.shortUrl} className="text-primary underline" target="_blank" rel="noopener noreferrer">
+													{r.shortUrl}
+													<span className="sr-only"> (opens in new tab)</span>
+												</a>
+											</p>
+										)}
+										<p className="mt-0.5 break-all">
+											<span className="text-muted-foreground">Raw: </span>
+											<a href={r.rawUrl} className="text-primary underline" target="_blank" rel="noopener noreferrer">
+												{r.rawUrl}
+												<span className="sr-only"> (opens in new tab)</span>
+											</a>
+										</p>
+										<p className="text-muted-foreground mt-1">
+											{r.expiresAt ? (
+												<>
+													Expires: <ClientDateYmd iso={r.expiresAt} className="inline" />
+												</>
+											) : (
+												'Permanent (no expiry)'
+											)}
+										</p>
+									</li>
+								))}
+							</ul>
+							<p className="text-xs text-muted-foreground mt-3">
+								Press <span className="font-medium text-foreground">C</span> to copy the content page URL
+								{results.length > 1 ? 's (one per line)' : ''} and <span className="font-medium text-foreground">R</span> to copy the
+								raw URL{results.length > 1 ? 's (one per line)' : ''}.
 							</p>
 						</AlertDescription>
 					</Alert>
@@ -141,25 +262,50 @@ export function AdminUploadForm() {
 
 			<Card className="border-primary/20">
 				<CardContent>
-					<form onSubmit={handleSubmit} className="space-y-4" aria-label="Upload file">
+					<form onSubmit={handleSubmit} className="space-y-4" aria-label="Upload files">
 						<div aria-live="assertive" aria-atomic="true">
-							{error && (
+							{(error || clientBlock) && (
 								<Alert variant="destructive">
-									<AlertDescription>{error}</AlertDescription>
+									<AlertDescription>{error || clientBlock}</AlertDescription>
 								</Alert>
+							)}
+						</div>
+
+						<div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+							{quotaLoadState === 'loading' && <p>Loading storage quota…</p>}
+							{quotaLoadState === 'error' && <p>Could not load storage info. Limits still apply on the server.</p>}
+							{quotaLoadState === 'ok' && quota && (
+								<p>
+									Storage: {fmtMb(quota.usedBytes)} / {fmtMb(quota.limitBytes)} MB used · {fmtMb(quota.remainingBytes)} MB available ·
+									up to {fmtMb(quota.maxFileSizeBytes)} MB per file
+									{selectedFiles.length > 0 && <> · selection: {fmtMb(selectedFiles.reduce((s, f) => s + f.size, 0))} MB</>}
+								</p>
 							)}
 						</div>
 
 						<div className="space-y-2">
 							<Label>
-								File
+								Files
 								<RequiredMark />
 							</Label>
-							<FileDropZone key={fileResetKey} inputRef={fileRef} name="file" required aria-required="true" />
+							<FileDropZone
+								key={fileResetKey}
+								inputRef={fileRef}
+								multiple
+								name="files"
+								required
+								aria-required="true"
+								onFilesChange={files => {
+									setSelectedFiles(files);
+									setError('');
+								}}
+							/>
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="filename">Custom Filename</Label>
+							<Label htmlFor="filename" className={cn(!singleFileOnly && 'text-muted-foreground opacity-70')}>
+								Custom Filename
+							</Label>
 							<Input
 								id="filename"
 								name="filename"
@@ -167,20 +313,31 @@ export function AdminUploadForm() {
 								placeholder="Leave blank to use original filename."
 								value={filename}
 								onChange={e => setFilename(e.target.value)}
+								disabled={!singleFileOnly}
 							/>
+							{!singleFileOnly && (
+								<p className="text-xs text-muted-foreground">Remove extra files to set a custom filename for one file.</p>
+							)}
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="shortSlug">Short URL Slug</Label>
+							<Label htmlFor="shortSlug" className={cn(!singleFileOnly && 'text-muted-foreground opacity-70')}>
+								Short URL Slug
+							</Label>
 							<Input
 								id="shortSlug"
 								name="shortSlug"
 								type="text"
-								placeholder="e.g. my-file (accessible at /s/my-file)"
+								placeholder="e.g. my-file (single file only)"
 								value={shortSlug}
 								onChange={e => setShortSlug(e.target.value)}
+								disabled={!singleFileOnly}
 							/>
-							<p className="text-xs text-muted-foreground">Lowercase letters, numbers, and hyphens only.</p>
+							<p className="text-xs text-muted-foreground">
+								{singleFileOnly
+									? 'Lowercase letters, numbers, and hyphens only.'
+									: 'Remove extra files to set a short URL for one file.'}
+							</p>
 						</div>
 
 						<div className="space-y-2">
@@ -198,6 +355,7 @@ export function AdminUploadForm() {
 									))}
 								</SelectContent>
 							</Select>
+							<p className="text-xs text-muted-foreground">Applies to every file in this upload.</p>
 						</div>
 
 						<div className="space-y-2">
@@ -219,7 +377,7 @@ export function AdminUploadForm() {
 							</Select>
 						</div>
 
-						<Button type="submit" className="w-full" disabled={uploading} aria-busy={uploading}>
+						<Button type="submit" className="w-full" disabled={uploading || submitBlockedByClient} aria-busy={uploading}>
 							{uploading ? 'Uploading...' : 'Upload'}
 						</Button>
 					</form>

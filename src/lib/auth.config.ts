@@ -37,11 +37,13 @@ export const authConfig: NextAuthConfig = {
 			// Public paths (cron is protected by its own secret header check)
 			if (
 				pathname.startsWith('/login') ||
+				pathname.startsWith('/signup') ||
 				pathname.startsWith('/invite') ||
 				pathname.startsWith('/api/auth') ||
 				pathname.startsWith('/api/invite') ||
+				pathname.startsWith('/api/register') ||
 				pathname.startsWith('/api/preview') ||
-				/^(\/api\/content\/[^/]+(\/raw)?)$/.test(pathname) ||
+				/^(\/api\/content\/[^/]+(\/(raw|report))?)$/.test(pathname) ||
 				/^(\/(c|r|s|e)\/[^/]+)$/.test(pathname) ||
 				pathname.startsWith('/api/cron')
 			) {
@@ -67,9 +69,9 @@ export const authConfig: NextAuthConfig = {
 				}
 			}
 
-			// Upload routes: uploader or admin
-			if (pathname === '/upload' || pathname.startsWith('/api/upload')) {
-				if (role !== 'admin' && role !== 'uploader') {
+			// Upload routes: guest (limited), uploader, or admin
+			if (pathname === '/upload' || pathname === '/clip' || pathname.startsWith('/api/upload')) {
+				if (role !== 'admin' && role !== 'uploader' && role !== 'guest') {
 					return Response.redirect(new URL('/dashboard', origin));
 				}
 			}

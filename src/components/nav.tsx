@@ -85,15 +85,28 @@ export function Nav({ role, username }: NavProps) {
 		() => false
 	);
 
+	const isMac = useSyncExternalStore(
+		emptySubscribe,
+		() => /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent),
+		() => false
+	);
+
 	const baseUrl = getBaseUrl();
 
-	const links = useMemo(() => {
-		return [
-			{ href: '/upload', label: 'Upload', minRole: 'uploader' },
+	type NavLinkDef = {
+		href: string;
+		label: string;
+		minRole: 'guest' | 'uploader' | 'admin';
+	};
+
+	const links = useMemo((): NavLinkDef[] => {
+		const raw: NavLinkDef[] = [
+			{ href: '/upload', label: 'Upload', minRole: 'guest' },
 			{ href: '/dashboard', label: 'Dashboard', minRole: 'guest' },
 			{ href: '/admin/users', label: 'Users', minRole: 'admin' },
 			{ href: '/admin/content', label: 'Content', minRole: 'admin' },
-		].map(link => ({
+		];
+		return raw.map(link => ({
 			...link,
 			href: `${baseUrl}${link.href}`,
 		}));
@@ -113,7 +126,13 @@ export function Nav({ role, username }: NavProps) {
 	}
 
 	function openShortcuts() {
-		window.dispatchEvent(new KeyboardEvent('keydown', { key: '/', ctrlKey: true, bubbles: true }));
+		window.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				key: '/',
+				bubbles: true,
+				...(isMac ? { metaKey: true } : { ctrlKey: true }),
+			})
+		);
 	}
 
 	const roleBadgeColor: Record<string, string> = {
@@ -212,7 +231,7 @@ export function Nav({ role, username }: NavProps) {
 						size="sm"
 						className={cn(ICON_BTN, 'group/kbd')}
 						onClick={openShortcuts}
-						aria-label="Keyboard shortcuts (Ctrl+/)"
+						aria-label={isMac ? 'Keyboard shortcuts (Command /)' : 'Keyboard shortcuts (Control /)'}
 					>
 						<Keyboard className="h-4 w-4 transition-transform duration-200 group-hover/kbd:scale-110" aria-hidden="true" />
 					</Button>

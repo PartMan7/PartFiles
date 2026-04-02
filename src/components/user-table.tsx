@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RequiredMark } from '@/components/required-mark';
 import { toast } from 'sonner';
+import { ClientDateYmd } from '@/components/client-date-ymd';
 
 interface User {
 	id: string;
@@ -31,13 +32,13 @@ export function UserManager({ currentUserId }: UserManagerProps) {
 	const [showCreate, setShowCreate] = useState(false);
 	const [editUser, setEditUser] = useState<User | null>(null);
 
-	const fetchUsers = useCallback(async () => {
+	const fetchUsers = useCallback(async (opts?: { silent?: boolean }) => {
 		try {
 			const res = await fetch('/api/admin/users');
 			const data = await res.json();
 			setUsers(data.users || []);
 		} catch {
-			toast.error('Failed to load users');
+			if (!opts?.silent) toast.error('Failed to load users');
 		} finally {
 			setLoading(false);
 		}
@@ -45,6 +46,13 @@ export function UserManager({ currentUserId }: UserManagerProps) {
 
 	useEffect(() => {
 		fetchUsers();
+	}, [fetchUsers]);
+
+	useEffect(() => {
+		const id = window.setInterval(() => {
+			void fetchUsers({ silent: true });
+		}, 30_000);
+		return () => clearInterval(id);
 	}, [fetchUsers]);
 
 	async function handleDelete(user: User) {
@@ -87,6 +95,7 @@ export function UserManager({ currentUserId }: UserManagerProps) {
 							<DialogDescription>Add a new user to the system. Users cannot register themselves.</DialogDescription>
 						</DialogHeader>
 						<CreateUserForm
+							refetchUsers={() => fetchUsers()}
 							onSuccess={() => {
 								setShowCreate(false);
 								fetchUsers();
@@ -116,7 +125,9 @@ export function UserManager({ currentUserId }: UserManagerProps) {
 								<Badge variant={user.role === 'admin' ? 'default' : 'outline'}>{user.role}</Badge>
 							</TableCell>
 							<TableCell>{user._count.content}</TableCell>
-							<TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+							<TableCell>
+								<ClientDateYmd iso={user.createdAt} />
+							</TableCell>
 							<TableCell className="text-right space-x-2">
 								<Dialog open={editUser?.id === user.id} onOpenChange={open => !open && setEditUser(null)}>
 									<DialogTrigger asChild>
@@ -152,7 +163,7 @@ export function UserManager({ currentUserId }: UserManagerProps) {
 	);
 }
 
-function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
+function CreateUserForm({ onSuccess, refetchUsers }: { onSuccess: () => void; refetchUsers: () => void }) {
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
 	const [role, setRole] = useState('guest');
@@ -192,6 +203,7 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
 				setError(data.error || 'Failed to create user');
 			} else if (mode === 'invite' && data.inviteUrl) {
 				setInviteUrl(data.inviteUrl);
+				refetchUsers();
 				toast.success(`User "${data.user.username}" created with invite link`);
 			} else {
 				toast.success(`User "${data.user.username}" created`);
@@ -275,6 +287,7 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
 								type="password"
 								required={mode === 'password'}
 								minLength={8}
+								maxLength={128}
 								aria-required={mode === 'password'}
 							/>
 						</div>
@@ -367,7 +380,14 @@ function EditUserForm({ user, onSuccess }: { user: User; onSuccess: () => void }
 			</div>
 			<div className="space-y-2">
 				<Label htmlFor="edit-password">New Password</Label>
-				<Input id="edit-password" name="password" type="password" minLength={8} placeholder="Leave blank to keep current" />
+				<Input
+					id="edit-password"
+					name="password"
+					type="password"
+					minLength={8}
+					maxLength={128}
+					placeholder="Leave blank to keep current"
+				/>
 			</div>
 			<div className="space-y-2">
 				<Label>

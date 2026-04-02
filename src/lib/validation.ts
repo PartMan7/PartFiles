@@ -1,7 +1,21 @@
 import { z } from 'zod';
 import path from 'path';
+
+export const MIN_PASSWORD_LENGTH = 8;
+export const MAX_PASSWORD_LENGTH = 128;
+
+export function validatePasswordForStorage(password: string): { valid: true } | { valid: false; error: string } {
+	if (password.length < MIN_PASSWORD_LENGTH) {
+		return { valid: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+	}
+	if (password.length > MAX_PASSWORD_LENGTH) {
+		return { valid: false, error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters` };
+	}
+	return { valid: true };
+}
 import {
 	MAX_FILE_SIZE,
+	maxUploadFileSizeBytesForRole,
 	ALLOWED_EXTENSIONS,
 	BLOCKED_EXTENSIONS,
 	MAX_EXPIRY_HOURS_UPLOADER,
@@ -82,19 +96,22 @@ export function validateExtension(filename: string): {
 }
 
 /**
- * Validate file size.
+ * Validate file size against the role's per-file cap (guests have a lower limit).
  */
-export function validateFileSize(size: number): {
+export function validateFileSize(
+	size: number,
+	maxBytes: number = MAX_FILE_SIZE
+): {
 	valid: boolean;
 	error?: string;
 } {
 	if (size <= 0) {
 		return { valid: false, error: 'File is empty' };
 	}
-	if (size > MAX_FILE_SIZE) {
+	if (size > maxBytes) {
 		return {
 			valid: false,
-			error: `File exceeds maximum size of ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
+			error: `File exceeds maximum size of ${maxBytes / (1024 * 1024)}MB`,
 		};
 	}
 	return { valid: true };
@@ -102,6 +119,10 @@ export function validateFileSize(size: number): {
 
 /**
  * Check the user's total storage usage against their role limit.
+ *
+ * @param newFileSize - Bytes for one new file, **or** the total bytes of a multi-file batch
+ *   (sum of all parts) for a pre-write check. Per-file commits still re-check inside
+ *   `createContentWithStorageCheck` to mitigate races.
  */
 export async function validateStorageLimit(
 	userId: string,
@@ -141,6 +162,43 @@ export async function validateStorageLimit(
 	}
 
 	return { valid: true, currentUsage, limit };
+}
+
+/**
+ * Validate every file in a batch (size + extension) and ensure **current usage + sum(sizes)**
+ * does not exceed the role storage cap. Call before writing any part of the batch so the
+ * server rejects the entire request when the batch would overflow (no partial disk writes).
+ */
+export async function validateUploadBatchBeforeWrite(
+	userId: string,
+	role: string,
+	files: File[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	if (files.length === 0) {
+		return { ok: false, error: 'No file provided' };
+	}
+
+	const perFileMax = maxUploadFileSizeBytesForRole(role);
+	let totalSize = 0;
+	for (const file of files) {
+		const sizeResult = validateFileSize(file.size, perFileMax);
+		if (!sizeResult.valid) {
+			return { ok: false, error: sizeResult.error ?? 'Invalid file size' };
+		}
+		const originalName = file.name || 'unnamed';
+		const extResult = validateExtension(originalName);
+		if (!extResult.valid) {
+			return { ok: false, error: extResult.error ?? 'Invalid extension' };
+		}
+		totalSize += file.size;
+	}
+
+	const storageResult = await validateStorageLimit(userId, role, totalSize);
+	if (!storageResult.valid) {
+		return { ok: false, error: storageResult.error ?? 'Storage limit exceeded' };
+	}
+
+	return { ok: true };
 }
 
 /**

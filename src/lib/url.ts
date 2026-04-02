@@ -11,3 +11,8 @@ export function getContentUrl(): string {
 	if (process.env.NODE_ENV !== 'development' && CONTENT_URL) return CONTENT_URL.replace(/\/$/, '');
 	return getBaseUrl();
 }
+
+/** Public URL for raw file bytes (GET /r/[id]); same asset as /api/content/[id]/raw without the /api path. */
+export function getRawFilePublicUrl(contentId: string): string {
+	return `${getContentUrl()}/r/${contentId}`;
+}

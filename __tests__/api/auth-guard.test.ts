@@ -6,7 +6,7 @@
  *
  *   1. Every non-public route rejects unauthenticated requests (401 / 403).
  *   2. Every admin-only route rejects non-admin roles (403).
- *   3. Upload routes reject guests who lack upload permission (403).
+ *   3. Guest access to upload routes is allowed with server-side limits (see upload tests).
  *
  * If a new route.ts is added anywhere under src/app/api/ it is automatically
  * included — no manual test registration required.
@@ -68,22 +68,23 @@ function extractParams(routePath: string): Record<string, string> | null {
 // ---------------------------------------------------------------------------
 
 // Routes that are intentionally public (no session auth).
-const PUBLIC_PATTERNS = [/\/api\/auth\//, /\/api\/invite\//, /\/api\/preview/, /\/api\/content\/\[id](?:\/raw)?/, /\/api\/s\/\[slug]/];
+const PUBLIC_PATTERNS = [
+	/\/api\/auth\//,
+	/\/api\/invite\//,
+	/\/api\/register$/,
+	/\/api\/preview/,
+	/\/api\/content\/\[id](?:\/raw)?/,
+	/\/api\/s\/\[slug]/,
+];
 
 // Routes that require admin role.
 const ADMIN_PATTERNS = [/\/api\/admin\//, /\/api\/directories/];
-
-// Routes that require at least uploader role (guests rejected).
-const UPLOAD_PATTERNS = [/\/api\/upload/];
 
 function isPublic(route: string) {
 	return PUBLIC_PATTERNS.some(p => p.test(route));
 }
 function isAdmin(route: string) {
 	return ADMIN_PATTERNS.some(p => p.test(route));
-}
-function isUpload(route: string) {
-	return UPLOAD_PATTERNS.some(p => p.test(route));
 }
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const;
@@ -174,25 +175,7 @@ describe('Auth guard — automatic route scanning', () => {
 		}
 	});
 
-	// ── 3. Guest → rejected on upload routes ───────────────────────────────
-	describe('rejects guest on upload routes', () => {
-		for (const file of allRouteFiles) {
-			const route = toRoutePath(file);
-			if (!isUpload(route) || isAdmin(route)) continue; // admin upload tested above
-
-			it(`${route} rejects guest`, async () => {
-				mockGuest();
-				const mod = await import(file);
-				const results = await callAllHandlers(mod, route);
-
-				for (const { method, status } of results) {
-					expect(status, `${method} ${route} should reject guest — got ${status}`).toBe(403);
-				}
-			});
-		}
-	});
-
-	// ── 4. Coverage: every route file is either public or tested ───────────
+	// ── 3. Coverage: every route file is either public or tested ───────────
 	describe('route coverage', () => {
 		it('all non-public API routes are covered by auth guard tests', () => {
 			const uncovered = allRouteFiles.filter(f => {

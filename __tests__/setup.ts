@@ -69,6 +69,12 @@ export const mockPrisma = {
 	shortSlug: createMockModel(),
 	allowedDirectory: createMockModel(),
 	inviteToken: createMockModel(),
+	guestUpgradeRequest: createMockModel(),
+	discordWebhookHourQuota: {
+		updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+		findUnique: vi.fn().mockResolvedValue(null),
+		create: vi.fn().mockResolvedValue({ hourBucketUtc: 'x', count: 1 }),
+	},
 	// $transaction passes the mock prisma itself to the callback so
 	// existing model mocks work inside transactions.
 	$transaction: vi.fn(async (fnOrArray: ((tx: unknown) => Promise<unknown>) | unknown[]) => {
@@ -109,6 +115,7 @@ export const mockPreview = {
 	isPreviewable: vi.fn((mime: string) => mime.startsWith('image/')),
 	generatePreviewBuffer: vi.fn().mockResolvedValue(Buffer.from('mock-preview-data')),
 	generateAndSavePreview: vi.fn().mockResolvedValue('mock/storage/preview-path.jpg'),
+	getImageDimensions: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
 	deletePreview: vi.fn().mockResolvedValue(undefined),
 };
 
@@ -159,6 +166,15 @@ beforeEach(() => {
 	mockPrisma.shortSlug.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
 		Promise.resolve({ id: 'new-slug-id', ...data })
 	);
+	mockPrisma.guestUpgradeRequest.findUnique.mockResolvedValue(null);
+	mockPrisma.guestUpgradeRequest.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+		Promise.resolve({ id: 'new-upgrade-req-id', ...data })
+	);
+	mockPrisma.guestUpgradeRequest.delete.mockResolvedValue({});
+
+	mockPrisma.discordWebhookHourQuota.updateMany.mockResolvedValue({ count: 1 });
+	mockPrisma.discordWebhookHourQuota.findUnique.mockResolvedValue(null);
+	mockPrisma.discordWebhookHourQuota.create.mockResolvedValue({ hourBucketUtc: 'x', count: 1 });
 
 	// Reset $transaction mock
 	mockPrisma.$transaction.mockReset().mockImplementation(async (fnOrArray: ((tx: unknown) => Promise<unknown>) | unknown[]) => {
@@ -178,5 +194,6 @@ beforeEach(() => {
 	mockPreview.isPreviewable.mockReset().mockImplementation((mime: string) => mime.startsWith('image/'));
 	mockPreview.generatePreviewBuffer.mockReset().mockResolvedValue(Buffer.from('mock-preview-data'));
 	mockPreview.generateAndSavePreview.mockReset().mockResolvedValue('mock/storage/preview-path.jpg');
+	mockPreview.getImageDimensions.mockReset().mockResolvedValue({ width: 100, height: 100 });
 	mockPreview.deletePreview.mockReset().mockResolvedValue(undefined);
 });
