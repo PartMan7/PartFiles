@@ -7,14 +7,25 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  username     String        @unique
-  passwordHash String
-  role         String        @default("guest") // "admin" | "uploader" | "guest"
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  content      Content[]
-  inviteTokens InviteToken[]
+  id             String               @id @default(cuid())
+  username       String               @unique
+  passwordHash   String
+  role           String               @default("guest") // "admin" | "uploader" | "guest"
+  selfRegistered Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  content        Content[]
+  inviteTokens   InviteToken[]
+  upgradeRequest GuestUpgradeRequest?
+}
+
+model GuestUpgradeRequest {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  justification    String
+  contentSizeBytes Int
+  requestedAt      DateTime @default(now())
 }
 
 model InviteToken {
@@ -37,6 +48,8 @@ model Content {
   fileSize         Int
   fileExtension    String
   mimeType         String
+  imageWidth       Int?
+  imageHeight      Int?
   expiresAt        DateTime?
   uploadedById     String
   uploadedBy       User        @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
@@ -56,4 +69,10 @@ model AllowedDirectory {
   id   String @id @default(cuid())
   name String @unique
   path String @unique
+}
+
+/** Tracks Discord webhook posts per UTC hour (all webhook URLs share one cap). */
+model DiscordWebhookHourQuota {
+  hourBucketUtc String @id
+  count         Int    @default(0)
 }
