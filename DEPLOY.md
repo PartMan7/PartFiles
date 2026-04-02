@@ -37,7 +37,7 @@ Open `.env` in your editor and set every variable:
 | `UPLOAD_DIR`             | Absolute path for uploaded files, e.g. `/opt/partfiles/uploads`. Must be writable by the Node process and **not** inside the repo tree (or inside a git-ignored directory).                          |
 | `INITIAL_ADMIN_PASSWORD` | Password for the first admin account created by the seed script. Change it on first login.                                                                                                           |
 | `BASE_URL`               | The public URL of your server, e.g. `https://files.example.com`. No trailing slash.                                                                                                                  |
-| `CONTENT_URL`            | _(Optional)_ A separate origin for content routes (`/c/`, `/s/`, `/r/`, `/e/`). Falls back to `BASE_URL` when unset.                                                                                 |
+| `CONTENT_URL`            | _(Optional)_ A separate origin for content routes (`/c/`, `/s/`, `/r/`, `/e/`). Falls back to `BASE_URL` when unset. When this differs from `BASE_URL`, sessions are synced automatically: unauthenticated visits to the content origin redirect to `BASE_URL` to pick up the session, then back to the content URL. The session cookie is never sent in a URL (one-time code exchange). If `BASE_URL` runs on multiple instances, use sticky sessions so the same instance handles the redirect and the exchange. |
 
 > **Security**: The `.env` file is listed in the deploy branch's
 > `.gitignore` and will never be tracked. Do **not** remove it from

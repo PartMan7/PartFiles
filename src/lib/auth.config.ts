@@ -35,6 +35,11 @@ export const authConfig: NextAuthConfig = {
 			const pathname = nextUrl.pathname;
 
 			// Public paths (cron is protected by its own secret header check)
+			const contentPath = /^\/(c|r|s|e)\/[^/]+$/.test(pathname);
+			const contentUrl = process.env.CONTENT_URL || process.env.NEXT_PUBLIC_CONTENT_URL || '';
+			const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || '';
+			const urlsDiffer = contentUrl && baseUrl && contentUrl.replace(/\/$/, '') !== baseUrl.replace(/\/$/, '');
+
 			if (
 				pathname.startsWith('/login') ||
 				pathname.startsWith('/invite') ||
@@ -42,9 +47,22 @@ export const authConfig: NextAuthConfig = {
 				pathname.startsWith('/api/invite') ||
 				pathname.startsWith('/api/preview') ||
 				/^(\/api\/content\/[^/]+(\/raw)?)$/.test(pathname) ||
-				/^(\/(c|r|s|e)\/[^/]+)$/.test(pathname) ||
 				pathname.startsWith('/api/cron')
 			) {
+				return true;
+			}
+			// Content paths: allow, but when CONTENT_URL differs from BASE_URL and user has no session
+			// on content origin, redirect to BASE_URL session-sync so the session is synced automatically
+			if (contentPath) {
+				if (
+					!isLoggedIn &&
+					urlsDiffer &&
+					getRequestOrigin(nextUrl, headers) === contentUrl.replace(/\/$/, '')
+				) {
+					const syncUrl = new URL('/api/auth/session-sync', baseUrl);
+					syncUrl.searchParams.set('return_to', nextUrl.pathname + nextUrl.search);
+					return Response.redirect(syncUrl);
+				}
 				return true;
 			}
 
