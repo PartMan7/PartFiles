@@ -21,6 +21,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { REPORT_REASON_MAX_LENGTH } from '@/lib/content-report';
 import { shouldWarnBeforeDownloadOrRaw } from '@/lib/file-download-risk';
+import { TEXT_PREVIEW_MAX_BYTES } from '@/lib/text-raw-preview';
 import { ClientDateYmd } from '@/components/client-date-ymd';
 
 /** Serialisable content object passed from the server page. */
@@ -234,6 +235,65 @@ function PreviewContextGuard({
 	return <div onContextMenu={handleContextMenu}>{children}</div>;
 }
 
+/** Fetches truncated text and renders with theme tokens (browser iframes for text/plain stay light). */
+function TextFilePreview({
+	previewUrl,
+	filename,
+	showTruncationNote,
+}: {
+	previewUrl: string;
+	filename: string;
+	showTruncationNote: boolean;
+}) {
+	const [text, setText] = useState<string | null>(null);
+	const [loadState, setLoadState] = useState<'loading' | 'ok' | 'error'>('loading');
+
+	useEffect(() => {
+		let cancelled = false;
+		setLoadState('loading');
+		setText(null);
+		fetch(previewUrl)
+			.then(res => {
+				if (!res.ok) throw new Error('bad status');
+				return res.text();
+			})
+			.then(t => {
+				if (cancelled) return;
+				setText(t);
+				setLoadState('ok');
+			})
+			.catch(() => {
+				if (!cancelled) setLoadState('error');
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [previewUrl]);
+
+	return (
+		<div className="space-y-2">
+			<div
+				className="max-h-[60vh] overflow-auto rounded-md border border-border bg-muted/40 px-4 py-3"
+				role="region"
+				aria-label={`Text preview: ${filename}`}
+			>
+				{loadState === 'loading' ? (
+					<p className="text-sm text-muted-foreground">Loading preview…</p>
+				) : loadState === 'error' ? (
+					<p className="text-sm text-destructive">Could not load preview.</p>
+				) : (
+					<pre className="m-0 font-mono text-sm leading-relaxed text-foreground whitespace-pre-wrap wrap-break-word">{text}</pre>
+				)}
+			</div>
+			{showTruncationNote ? (
+				<p className="text-sm text-muted-foreground">
+					Showing the first {formatSize(TEXT_PREVIEW_MAX_BYTES)}. Use Raw or Download for the full file.
+				</p>
+			) : null}
+		</div>
+	);
+}
+
 /* ── Main component ─────────────────────────────────────────────── */
 
 export function ContentViewer({ content, contentBaseUrl }: { content: ContentViewData; contentBaseUrl: string }) {
@@ -375,7 +435,11 @@ export function ContentViewer({ content, contentBaseUrl }: { content: ContentVie
 
 					{isText(mime) && (
 						<PreviewContextGuard active={warnBeforeRawOrDownload} onRiskyContextMenu={onPreviewContextMenu}>
-							<iframe src={rawUrl} className="w-full h-[60vh] rounded border-0 bg-muted" title={content.filename} />
+							<TextFilePreview
+								previewUrl={`${rawUrl}?textPreview=1`}
+								filename={content.filename}
+								showTruncationNote={content.fileSize > TEXT_PREVIEW_MAX_BYTES}
+							/>
 						</PreviewContextGuard>
 					)}
 

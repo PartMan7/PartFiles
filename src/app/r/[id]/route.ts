@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getFilePath } from '@/lib/storage';
 import { sanitizeFilename } from '@/lib/validation';
+import { sliceTextPreviewIfRequested } from '@/lib/text-raw-preview';
 import fs from 'fs/promises';
 
 /**
@@ -37,8 +38,9 @@ const INLINE_SAFE_TYPES = new Set([
  * GET /r/[id] — Serve the raw file for embedding / inline viewing.
  * Safe types are served inline; others fall back to attachment.
  */
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
+	const textPreview = req.nextUrl.searchParams.get('textPreview') === '1';
 
 	const content = await prisma.content.findUnique({ where: { id } });
 	if (!content) {
@@ -52,6 +54,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 	try {
 		const filePath = getFilePath(content.storagePath);
 		const fileBuffer = await fs.readFile(filePath);
+		const body = sliceTextPreviewIfRequested(fileBuffer, content.mimeType, textPreview);
 
 		const safeFilename = sanitizeFilename(content.filename).replace(/"/g, "'");
 		const isInlineSafe = INLINE_SAFE_TYPES.has(content.mimeType);
@@ -61,11 +64,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 			? "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'"
 			: "default-src 'none'";
 
-		return new NextResponse(fileBuffer, {
+		return new NextResponse(new Uint8Array(body), {
 			headers: {
 				'Content-Type': content.mimeType,
 				'Content-Disposition': disposition,
-				'Content-Length': String(content.fileSize),
+				'Content-Length': String(body.length),
 				'X-Content-Type-Options': 'nosniff',
 				'Content-Security-Policy': csp,
 				'Cache-Control': 'private, no-cache',

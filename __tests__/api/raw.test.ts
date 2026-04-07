@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { GET } from '@/app/r/[id]/route';
 import { mockAdmin, mockGuest, mockUnauthenticated, mockPrisma } from '../setup';
 import { parseResponse } from '../helpers';
 import { NextRequest } from 'next/server';
+import fs from 'fs/promises';
 
 describe('GET /r/[id] (raw file)', () => {
 	const makeReq = () => new NextRequest('http://localhost:3000/r/abc123');
@@ -113,5 +114,45 @@ describe('GET /r/[id] (raw file)', () => {
 
 		const res = await GET(makeReq(), { params: Promise.resolve({ id: 'abc123' }) });
 		expect(res.status).toBe(200);
+	});
+
+	it('with textPreview=1 truncates text/plain to first 100 KiB', async () => {
+		mockGuest();
+		const big = Buffer.alloc(120 * 1024, 97); // 'a'
+		mockPrisma.content.findUnique.mockResolvedValue({
+			id: 'abc123',
+			filename: 'big.txt',
+			storagePath: 'path/big.txt',
+			expiresAt: null,
+			mimeType: 'text/plain',
+			fileSize: big.length,
+		});
+		(fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(big);
+
+		const req = new NextRequest('http://localhost:3000/r/abc123?textPreview=1');
+		const res = await GET(req, { params: Promise.resolve({ id: 'abc123' }) });
+		expect(res.status).toBe(200);
+		const buf = Buffer.from(await res.arrayBuffer());
+		expect(buf.length).toBe(100 * 1024);
+		expect(res.headers.get('Content-Length')).toBe(String(100 * 1024));
+	});
+
+	it('ignores textPreview=1 for non-text MIME types', async () => {
+		mockGuest();
+		const jpegBody = Buffer.from('mock file content');
+		(fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(jpegBody);
+		mockPrisma.content.findUnique.mockResolvedValue({
+			id: 'abc123',
+			filename: 'photo.jpg',
+			storagePath: 'path/photo.jpg',
+			expiresAt: null,
+			mimeType: 'image/jpeg',
+			fileSize: jpegBody.length,
+		});
+
+		const req = new NextRequest('http://localhost:3000/r/abc123?textPreview=1');
+		const res = await GET(req, { params: Promise.resolve({ id: 'abc123' }) });
+		expect(res.status).toBe(200);
+		expect(res.headers.get('Content-Length')).toBe(String(jpegBody.length));
 	});
 });
