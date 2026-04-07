@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore
 import { useRouter, usePathname } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { useSession } from 'next-auth/react';
 import { useLastUpload } from '@/components/last-upload-context';
 import { useContentPageCopyInfo } from '@/components/content-page-copy-context';
 import { persistUploadMode, readStoredUploadMode, uploadHrefForMode } from '@/lib/upload-mode-preference';
+import { isAdmin } from '@/lib/permissions';
 import { toast } from 'sonner';
 
 interface Shortcut {
@@ -67,6 +69,8 @@ export function KeyboardShortcuts() {
 	const { lastRawUrls, lastUploadedContentUrls, setLastUploadedContentUrls } = useLastUpload();
 	const contentPageInfo = useContentPageCopyInfo();
 	const prevPathnameRef = useRef(pathname);
+	const { data: session, status } = useSession();
+	const showAdminShortcuts = status === 'authenticated' && !!session?.user && isAdmin(session.user.role);
 
 	useEffect(() => {
 		const prev = prevPathnameRef.current;
@@ -86,16 +90,18 @@ export function KeyboardShortcuts() {
 	}, [open]);
 
 	const shortcutGroups: ShortcutGroup[] = useMemo(() => {
+		const navShortcuts: Shortcut[] = [
+			{ keys: ['Shift', 'U'], label: 'Go to Upload' },
+			{ keys: ['Shift', 'Q'], label: 'Go to Quick Share' },
+			{ keys: ['Shift', 'S'], label: 'Go to Store Files' },
+			{ keys: ['Shift', 'D'], label: 'Go to Dashboard' },
+		];
+		if (showAdminShortcuts) {
+			navShortcuts.push({ keys: ['Shift', 'C'], label: 'Go to Content' }, { keys: ['Shift', 'W'], label: 'Go to Users' });
+		}
 		const navigation: ShortcutGroup = {
 			title: 'Navigation',
-			shortcuts: [
-				{ keys: ['Shift', 'U'], label: 'Go to Upload (Quick Share or Store — last tab preference)' },
-				{ keys: ['Shift', 'Q'], label: 'Go to Quick Share (updates saved tab)' },
-				{ keys: ['Shift', 'S'], label: 'Go to Store Files (updates saved tab)' },
-				{ keys: ['Shift', 'D'], label: 'Go to Dashboard' },
-				{ keys: ['Shift', 'C'], label: 'Go to Content (admin)' },
-				{ keys: ['Shift', 'W'], label: 'Go to Users (admin)' },
-			],
+			shortcuts: navShortcuts,
 		};
 
 		const copyUrl: ShortcutGroup = {
@@ -127,7 +133,7 @@ export function KeyboardShortcuts() {
 		};
 
 		return [general, copyUrl, navigation, accessibility];
-	}, [mod]);
+	}, [mod, showAdminShortcuts]);
 
 	const handleGlobalKeyDown = useCallback(
 		(e: KeyboardEvent) => {
@@ -171,12 +177,13 @@ export function KeyboardShortcuts() {
 					navigateToUploadTab(router, pathname, mode === 'share');
 					return;
 				}
-				if (['d', 'c', 'w'].includes(key)) {
-					const routes: Record<string, string> = {
-						d: '/dashboard',
-						c: '/admin/content',
-						w: '/admin/users',
-					};
+				const isAdminNavKey = key === 'd' || (showAdminShortcuts && (key === 'c' || key === 'w'));
+				if (isAdminNavKey) {
+					const routes: Record<string, string> = { d: '/dashboard' };
+					if (showAdminShortcuts) {
+						routes.c = '/admin/content';
+						routes.w = '/admin/users';
+					}
 					const route = routes[key];
 					if (route && route !== pathname) {
 						e.preventDefault();
@@ -254,7 +261,7 @@ export function KeyboardShortcuts() {
 				}
 			}
 		},
-		[router, pathname, lastRawUrls, lastUploadedContentUrls, contentPageInfo]
+		[router, pathname, lastRawUrls, lastUploadedContentUrls, contentPageInfo, showAdminShortcuts]
 	);
 
 	useEffect(() => {
