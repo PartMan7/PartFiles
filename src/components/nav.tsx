@@ -344,7 +344,7 @@ export function Nav({ role, username }: NavProps) {
 
 								<DropdownMenuSeparator />
 								{role ? (
-									<DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login' })}>Sign Out</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => signOut({ callbackUrl: `${baseUrl}/login` })}>Sign Out</DropdownMenuItem>
 								) : (
 									<DropdownMenuItem asChild>
 										<Link href={`${baseUrl}/login`} className="font-medium">
