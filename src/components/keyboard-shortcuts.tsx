@@ -8,7 +8,7 @@ import { useSession } from 'next-auth/react';
 import { useLastUpload } from '@/components/last-upload-context';
 import { useContentPageCopyInfo } from '@/components/content-page-copy-context';
 import { persistUploadMode, readStoredUploadMode, uploadHrefForMode } from '@/lib/upload-mode-preference';
-import { isAdmin } from '@/lib/permissions';
+import { isAdmin, canBrowseContent } from '@/lib/permissions';
 import { toast } from 'sonner';
 
 interface Shortcut {
@@ -70,7 +70,9 @@ export function KeyboardShortcuts() {
 	const contentPageInfo = useContentPageCopyInfo();
 	const prevPathnameRef = useRef(pathname);
 	const { data: session, status } = useSession();
-	const showAdminShortcuts = status === 'authenticated' && !!session?.user && isAdmin(session.user.role);
+	const role = session?.user?.role ?? '';
+	const showAdminShortcuts = status === 'authenticated' && !!session?.user && isAdmin(role);
+	const showMyUploadsShortcut = status === 'authenticated' && !!session?.user && canBrowseContent(role);
 
 	useEffect(() => {
 		const prev = prevPathnameRef.current;
@@ -97,7 +99,9 @@ export function KeyboardShortcuts() {
 			{ keys: ['Shift', 'D'], label: 'Go to Dashboard' },
 		];
 		if (showAdminShortcuts) {
-			navShortcuts.push({ keys: ['Shift', 'C'], label: 'Go to Content' }, { keys: ['Shift', 'W'], label: 'Go to Users' });
+			navShortcuts.push({ keys: ['Shift', 'C'], label: 'Go to Content (admin)' }, { keys: ['Shift', 'W'], label: 'Go to Users' });
+		} else if (showMyUploadsShortcut) {
+			navShortcuts.push({ keys: ['Shift', 'C'], label: 'Go to Content' });
 		}
 		const navigation: ShortcutGroup = {
 			title: 'Navigation',
@@ -133,7 +137,7 @@ export function KeyboardShortcuts() {
 		};
 
 		return [general, copyUrl, navigation, accessibility];
-	}, [mod, showAdminShortcuts]);
+	}, [mod, showAdminShortcuts, showMyUploadsShortcut]);
 
 	const handleGlobalKeyDown = useCallback(
 		(e: KeyboardEvent) => {
@@ -177,12 +181,17 @@ export function KeyboardShortcuts() {
 					navigateToUploadTab(router, pathname, mode === 'share');
 					return;
 				}
-				const isAdminNavKey = key === 'd' || (showAdminShortcuts && (key === 'c' || key === 'w'));
+				const isAdminNavKey =
+					key === 'd' ||
+					(showAdminShortcuts && (key === 'c' || key === 'w')) ||
+					(showMyUploadsShortcut && !showAdminShortcuts && key === 'c');
 				if (isAdminNavKey) {
 					const routes: Record<string, string> = { d: '/dashboard' };
 					if (showAdminShortcuts) {
 						routes.c = '/admin/content';
 						routes.w = '/admin/users';
+					} else if (showMyUploadsShortcut) {
+						routes.c = '/content';
 					}
 					const route = routes[key];
 					if (route && route !== pathname) {
@@ -261,7 +270,7 @@ export function KeyboardShortcuts() {
 				}
 			}
 		},
-		[router, pathname, lastRawUrls, lastUploadedContentUrls, contentPageInfo, showAdminShortcuts]
+		[router, pathname, lastRawUrls, lastUploadedContentUrls, contentPageInfo, showAdminShortcuts, showMyUploadsShortcut]
 	);
 
 	useEffect(() => {

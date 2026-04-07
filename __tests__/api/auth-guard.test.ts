@@ -73,7 +73,7 @@ const PUBLIC_PATTERNS = [
 	/\/api\/invite\//,
 	/\/api\/register$/,
 	/\/api\/preview/,
-	/\/api\/content\/\[id](?:\/raw)?/,
+	/\/api\/content\/\[id](?:\/(raw|report))?/,
 	/\/api\/s\/\[slug]/,
 ];
 
@@ -83,7 +83,7 @@ const ADMIN_PATTERNS = [/\/api\/admin\//, /\/api\/directories/];
 function isPublic(route: string) {
 	return PUBLIC_PATTERNS.some(p => p.test(route));
 }
-function isAdmin(route: string) {
+function isAdminRoute(route: string) {
 	return ADMIN_PATTERNS.some(p => p.test(route));
 }
 
@@ -151,7 +151,7 @@ describe('Auth guard — automatic route scanning', () => {
 	describe('rejects non-admin roles on admin routes', () => {
 		for (const file of allRouteFiles) {
 			const route = toRoutePath(file);
-			if (!isAdmin(route)) continue;
+			if (!isAdminRoute(route)) continue;
 
 			it(`${route} rejects uploader`, async () => {
 				mockUploader();

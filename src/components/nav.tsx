@@ -97,12 +97,15 @@ export function Nav({ role, username }: NavProps) {
 		href: string;
 		label: string;
 		minRole: 'guest' | 'uploader' | 'admin';
+		/** Omit for admins; they use /admin/content instead. */
+		hideForAdmin?: boolean;
 	};
 
 	const links = useMemo((): NavLinkDef[] => {
 		const raw: NavLinkDef[] = [
 			{ href: '/upload', label: 'Upload', minRole: 'guest' },
 			{ href: '/dashboard', label: 'Dashboard', minRole: 'guest' },
+			{ href: '/content', label: 'Content', minRole: 'guest', hideForAdmin: true },
 			{ href: '/admin/users', label: 'Users', minRole: 'admin' },
 			{ href: '/admin/content', label: 'Content', minRole: 'admin' },
 		];
@@ -119,7 +122,11 @@ export function Nav({ role, username }: NavProps) {
 	};
 
 	const userLevel = role ? (roleLevel[role] ?? 0) : -1;
-	const visibleLinks = links.filter(link => userLevel >= (roleLevel[link.minRole] ?? 0));
+	const visibleLinks = links.filter(link => {
+		if (userLevel < (roleLevel[link.minRole] ?? 0)) return false;
+		if (link.hideForAdmin && role === 'admin') return false;
+		return true;
+	});
 
 	function toggleTheme() {
 		setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');

@@ -5,7 +5,7 @@ import { Nav } from '@/components/nav';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { STORAGE_LIMITS } from '@/lib/config';
-import { canUpload, isAdmin, isGuestRole } from '@/lib/permissions';
+import { canUpload, isAdmin, isGuestRole, canBrowseContent } from '@/lib/permissions';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { GuestUpgradeCta } from '@/components/guest-upgrade-cta';
@@ -117,6 +117,13 @@ export default async function DashboardPage() {
 									<Link href="/upload">
 										<Button className="w-full" variant="outline">
 											Upload Content
+										</Button>
+									</Link>
+								)}
+								{canBrowseContent(role) && !isAdmin(role) && (
+									<Link href="/content">
+										<Button className="w-full" variant="outline">
+											Content
 										</Button>
 									</Link>
 								)}

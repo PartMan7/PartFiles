@@ -376,11 +376,11 @@
 				}
 			}
 		},
-		"/admin/content": {
+		"/content": {
 			"get": {
-				"tags": ["Admin"],
-				"summary": "List all content",
-				"description": "Returns a list of all content across the system. **Requires Admin role.**",
+				"tags": ["Admin", "Uploader"],
+				"summary": "List content",
+				"description": "Lists content. Admins may see all items (optional filters). Other roles must pass `uploadedBy` query params scoped to their username; the server enforces access.",
 				"parameters": [
 					{
 						"name": "expired",
@@ -389,11 +389,25 @@
 							"type": "string",
 							"enum": ["active", "expired"]
 						}
+					},
+					{
+						"name": "uploadedBy",
+						"in": "query",
+						"description": "Repeat for multiple tags (admin filter; required for non-admins).",
+						"schema": {
+							"type": "string"
+						}
 					}
 				],
 				"responses": {
 					"200": {
 						"description": "List of content"
+					},
+					"400": {
+						"description": "Invalid uploader filter"
+					},
+					"401": {
+						"description": "Not authenticated"
 					}
 				}
 			}

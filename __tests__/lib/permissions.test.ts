@@ -54,7 +54,7 @@ describe('permissions', () => {
 
 	describe('canBrowseContent', () => {
 		it('admin can browse content', () => expect(canBrowseContent('admin')).toBe(true));
-		it('uploader cannot browse content', () => expect(canBrowseContent('uploader')).toBe(false));
-		it('guest cannot browse content', () => expect(canBrowseContent('guest')).toBe(false));
+		it('uploader can browse their uploads list', () => expect(canBrowseContent('uploader')).toBe(true));
+		it('guest can browse their uploads list', () => expect(canBrowseContent('guest')).toBe(true));
 	});
 });

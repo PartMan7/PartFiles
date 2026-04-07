@@ -43,8 +43,8 @@ export function canSetNoExpiry(role: string): boolean {
 }
 
 /**
- * Check if a user can browse/list content.
+ * Check if a user can open the “my uploads” list (GET /api/content scoped to self for non-admins).
  */
 export function canBrowseContent(role: string): boolean {
-	return isAdmin(role);
+	return hasMinRole(role, 'guest');
 }

@@ -62,7 +62,7 @@ export const authConfig: NextAuthConfig = {
 				return false; // Redirect to login (default behavior)
 			}
 
-			// Admin-only routes
+			// Admin-only routes (list content is GET /api/content, outside /api/admin)
 			if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
 				if (role !== 'admin') {
 					return Response.redirect(new URL('/dashboard', origin));

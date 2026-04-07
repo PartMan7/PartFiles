@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -115,7 +115,19 @@ function FileExtIcon({ ext }: { ext: string }) {
 	);
 }
 
-export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
+export function ContentManager({
+	contentBaseUrl,
+	isAdmin: isAdminUser,
+	sessionUsername = '',
+}: {
+	contentBaseUrl: string;
+	/** When false, every fetch must include an uploader filter; the client sends your username when none are set. */
+	isAdmin: boolean;
+	/** Logged-in username; used as the default `uploadedBy` tag for non-admins. */
+	sessionUsername?: string;
+}) {
+	const showUploaderColumn = isAdminUser;
+
 	const [content, setContent] = useState<ContentItem[]>([]);
 	const [loading, setLoading] = useState(true);
 
@@ -123,7 +135,10 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [typeFilter, setTypeFilter] = useState('all');
 	const [statusFilter, setStatusFilter] = useState('all');
-	const [uploaderFilter, setUploaderFilter] = useState('all');
+	const [uploaderTags, setUploaderTags] = useState<string[]>([]);
+	const [uploaderInput, setUploaderInput] = useState('');
+	const [uploaderNameSuggestions, setUploaderNameSuggestions] = useState<string[]>([]);
+	const uploaderInputRef = useRef<HTMLInputElement>(null);
 	const [directoryFilter, setDirectoryFilter] = useState('all');
 
 	// Sort state
@@ -134,20 +149,48 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 		try {
 			const params = new URLSearchParams();
 			if (statusFilter !== 'all') params.set('expired', statusFilter);
+			const tags = [...uploaderTags];
+			if (!isAdminUser && tags.length === 0 && sessionUsername) {
+				tags.push(sessionUsername);
+			}
+			for (const tag of tags) params.append('uploadedBy', tag);
 			const query = params.toString();
-			const res = await fetch(`/api/admin/content${query ? `?${query}` : ''}`);
+			const res = await fetch(`/api/content${query ? `?${query}` : ''}`);
 			const data = await res.json();
+			if (!res.ok) {
+				toast.error(typeof data.error === 'string' ? data.error : 'Failed to load content');
+				return;
+			}
 			setContent(data.content || []);
 		} catch {
 			toast.error('Failed to load content');
 		} finally {
 			setLoading(false);
 		}
-	}, [statusFilter]);
+	}, [statusFilter, uploaderTags, isAdminUser, sessionUsername]);
 
 	useEffect(() => {
 		fetchContent();
 	}, [fetchContent]);
+
+	useEffect(() => {
+		if (!isAdminUser) return;
+		let cancelled = false;
+		(async () => {
+			try {
+				const res = await fetch('/api/admin/users');
+				if (!res.ok) return;
+				const data = await res.json();
+				const names = (data.users as { username: string }[] | undefined)?.map(u => u.username) ?? [];
+				if (!cancelled) setUploaderNameSuggestions([...names].sort((a, b) => a.localeCompare(b)));
+			} catch {
+				/* suggestions optional */
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [isAdminUser]);
 
 	// Derive unique values for filter dropdowns
 	const filterOptions = useMemo(() => {
@@ -157,15 +200,33 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 		return { types, uploaders, directories };
 	}, [content]);
 
+	const uploaderDatalistOptions = useMemo(() => {
+		return [...new Set([...uploaderNameSuggestions, ...filterOptions.uploaders])].sort((a, b) => a.localeCompare(b));
+	}, [uploaderNameSuggestions, filterOptions.uploaders]);
+
+	function addUploaderTag(raw: string) {
+		const t = raw.trim();
+		if (!t) return;
+		const lower = t.toLowerCase();
+		if (uploaderTags.some(x => x.toLowerCase() === lower)) return;
+		setUploaderTags(prev => [...prev, t]);
+		setUploaderInput('');
+	}
+
+	function removeUploaderTag(tag: string) {
+		setUploaderTags(prev => prev.filter(x => x !== tag));
+	}
+
 	// Whether any filter is active (for the clear-all button)
 	const hasActiveFilters =
-		searchQuery !== '' || typeFilter !== 'all' || statusFilter !== 'all' || uploaderFilter !== 'all' || directoryFilter !== 'all';
+		searchQuery !== '' || typeFilter !== 'all' || statusFilter !== 'all' || uploaderTags.length > 0 || directoryFilter !== 'all';
 
 	function clearFilters() {
 		setSearchQuery('');
 		setTypeFilter('all');
 		setStatusFilter('all');
-		setUploaderFilter('all');
+		setUploaderTags([]);
+		setUploaderInput('');
 		setDirectoryFilter('all');
 	}
 
@@ -182,11 +243,6 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 		// Type filter
 		if (typeFilter !== 'all') {
 			result = result.filter(item => item.fileExtension === typeFilter);
-		}
-
-		// Uploader filter
-		if (uploaderFilter !== 'all') {
-			result = result.filter(item => item.uploadedBy.username === uploaderFilter);
 		}
 
 		// Directory filter
@@ -228,7 +284,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 		});
 
 		return result;
-	}, [content, searchQuery, typeFilter, uploaderFilter, directoryFilter, sortField, sortDirection]);
+	}, [content, searchQuery, typeFilter, directoryFilter, sortField, sortDirection]);
 
 	function handleSort(field: SortField) {
 		if (sortField === field) {
@@ -394,21 +450,53 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 					</SelectContent>
 				</Select>
 
-				{/* Uploaded by */}
-				{filterOptions.uploaders.length > 1 && (
-					<Select value={uploaderFilter} onValueChange={setUploaderFilter}>
-						<SelectTrigger aria-label="Filter by uploader">
-							<SelectValue placeholder="Uploaded by" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All uploaders</SelectItem>
-							{filterOptions.uploaders.map(name => (
-								<SelectItem key={name} value={name}>
-									{name}
-								</SelectItem>
+				{/* Uploaded by (admin only; guests/uploaders are scoped to their account on the server) */}
+				{isAdminUser && (
+					<div className="min-w-[220px] max-w-md flex flex-col gap-1">
+						<span className="text-xs text-muted-foreground">Uploaded by</span>
+						<div
+							className="flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm shadow-xs ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+							onMouseDown={e => {
+								if (e.target === e.currentTarget) uploaderInputRef.current?.focus();
+							}}
+						>
+							{uploaderTags.map(tag => (
+								<Badge key={tag} variant="secondary" className="h-6 gap-0.5 pr-0.5 font-normal">
+									<span className="max-w-[160px] truncate">{tag}</span>
+									<button
+										type="button"
+										className="rounded-sm p-0.5 hover:bg-secondary-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										onClick={() => removeUploaderTag(tag)}
+										aria-label={`Remove filter ${tag}`}
+									>
+										<X className="h-3 w-3" aria-hidden="true" />
+									</button>
+								</Badge>
 							))}
-						</SelectContent>
-					</Select>
+							<input
+								ref={uploaderInputRef}
+								list="content-uploader-filter-datalist"
+								className="min-w-32 flex-1 bg-transparent py-0.5 text-sm outline-none placeholder:text-muted-foreground"
+								placeholder={uploaderTags.length ? 'Add another…' : 'Type name, Enter to add…'}
+								value={uploaderInput}
+								onChange={e => setUploaderInput(e.target.value)}
+								onKeyDown={e => {
+									if (e.key === 'Enter') {
+										e.preventDefault();
+										addUploaderTag(uploaderInput);
+									} else if (e.key === 'Backspace' && !uploaderInput && uploaderTags.length > 0) {
+										setUploaderTags(prev => prev.slice(0, -1));
+									}
+								}}
+								aria-label="Filter by uploader; type a name and press Enter to add"
+							/>
+						</div>
+						<datalist id="content-uploader-filter-datalist">
+							{uploaderDatalistOptions.map(name => (
+								<option key={name} value={name} />
+							))}
+						</datalist>
+					</div>
 				)}
 
 				{/* Directory */}
@@ -482,15 +570,17 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 									Size <SortIcon field="fileSize" />
 								</button>
 							</TableHead>
-							<TableHead>
-								<button
-									type="button"
-									className="flex items-center hover:text-foreground transition-colors"
-									onClick={() => handleSort('uploadedBy')}
-								>
-									Uploaded By <SortIcon field="uploadedBy" />
-								</button>
-							</TableHead>
+							{showUploaderColumn && (
+								<TableHead>
+									<button
+										type="button"
+										className="flex items-center hover:text-foreground transition-colors"
+										onClick={() => handleSort('uploadedBy')}
+									>
+										Uploaded By <SortIcon field="uploadedBy" />
+									</button>
+								</TableHead>
+							)}
 							<TableHead>
 								<button
 									type="button"
@@ -567,29 +657,33 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 												<FileCode className="mr-2 h-4 w-4" />
 												Copy Raw URL
 											</DropdownMenuItem>
-											<DropdownMenuSeparator />
-											<DropdownMenuItem onClick={() => handleAddSlug(item)}>
-												<Link2 className="mr-2 h-4 w-4" />
-												Add Slug
-											</DropdownMenuItem>
-											{item.shortSlugs.length > 0 &&
-												item.shortSlugs.map(({ slug }) => (
-													<DropdownMenuItem key={slug} onClick={() => handleRemoveSlug(item, slug)}>
-														<Unlink className="mr-2 h-4 w-4" />
-														Remove /s/{slug}
+											{isAdminUser && (
+												<>
+													<DropdownMenuSeparator />
+													<DropdownMenuItem onClick={() => handleAddSlug(item)}>
+														<Link2 className="mr-2 h-4 w-4" />
+														Add Slug
 													</DropdownMenuItem>
-												))}
-											{item.expiresAt && !isExpired(item.expiresAt) && (
-												<DropdownMenuItem onClick={() => handleRemoveExpiry(item)}>
-													<ShieldCheck className="mr-2 h-4 w-4" />
-													Make Permanent
-												</DropdownMenuItem>
+													{item.shortSlugs.length > 0 &&
+														item.shortSlugs.map(({ slug }) => (
+															<DropdownMenuItem key={slug} onClick={() => handleRemoveSlug(item, slug)}>
+																<Unlink className="mr-2 h-4 w-4" />
+																Remove /s/{slug}
+															</DropdownMenuItem>
+														))}
+													{item.expiresAt && !isExpired(item.expiresAt) && (
+														<DropdownMenuItem onClick={() => handleRemoveExpiry(item)}>
+															<ShieldCheck className="mr-2 h-4 w-4" />
+															Make Permanent
+														</DropdownMenuItem>
+													)}
+													<DropdownMenuSeparator />
+													<DropdownMenuItem variant="destructive" onClick={() => handleDelete(item)}>
+														<Trash2 className="mr-2 h-4 w-4" />
+														Delete
+													</DropdownMenuItem>
+												</>
 											)}
-											<DropdownMenuSeparator />
-											<DropdownMenuItem variant="destructive" onClick={() => handleDelete(item)}>
-												<Trash2 className="mr-2 h-4 w-4" />
-												Delete
-											</DropdownMenuItem>
 										</DropdownMenuContent>
 									</DropdownMenu>
 								</TableCell>
@@ -600,7 +694,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 								{/* Size */}
 								<TableCell>{formatSize(item.fileSize)}</TableCell>
 								{/* Uploaded By */}
-								<TableCell>{item.uploadedBy.username}</TableCell>
+								{showUploaderColumn && <TableCell>{item.uploadedBy.username}</TableCell>}
 								{/* Expiry */}
 								<TableCell>
 									{item.expiresAt ? (
@@ -653,7 +747,7 @@ export function ContentManager({ contentBaseUrl }: { contentBaseUrl: string }) {
 						))}
 						{filteredContent.length === 0 && (
 							<TableRow>
-								<TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+								<TableCell colSpan={showUploaderColumn ? 10 : 9} className="text-center text-muted-foreground py-8">
 									{content.length === 0 ? 'No content uploaded yet.' : 'No content matches the current filters.'}
 								</TableCell>
 							</TableRow>
