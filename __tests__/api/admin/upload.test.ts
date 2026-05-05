@@ -85,6 +85,15 @@ describe('POST /api/admin/upload', () => {
 			expect(callData.id).toBe('ab12cd34');
 		});
 
+		it('accepts a text/plain .txt upload', async () => {
+			const req = uploadRequest('/api/admin/upload', {}, { name: 'snippet.txt', content: 'console.log(1)', type: 'text/plain' });
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			expect(body?.success).toBe(true);
+			const callData = mockPrisma.content.create.mock.calls[0][0].data;
+			expect(callData.fileExtension).toBe('.txt');
+		});
+
 		it('returns full base URL in url and shortUrl', async () => {
 			mockPrisma.shortSlug.findUnique.mockResolvedValue(null);
 			const req = uploadRequest('/api/admin/upload', { shortSlug: 'my-link' }, validFile);

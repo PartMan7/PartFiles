@@ -5,16 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileDropZone } from '@/components/file-drop-zone';
 import { RequiredMark } from '@/components/required-mark';
 import { toast } from 'sonner';
 import { useLastUpload } from '@/components/last-upload-context';
-import { type QuotaPayload, fmtMb, clientUploadBlockMessage } from '@/lib/upload-quota-client';
+import { type QuotaPayload, clientUploadBlockMessage } from '@/lib/upload-quota-client';
+import { UploadQuotaBanner } from '@/components/upload-quota-banner';
 import { ClientDateYmd } from '@/components/client-date-ymd';
 import { cn } from '@/lib/utils';
+import { buildTextUploadFile } from '@/lib/upload-text-file';
 import { X } from 'lucide-react';
+
+type UploadMethod = 'files' | 'rawText';
 
 const EXPIRY_OPTIONS = [
 	{ value: 'off', label: 'Never (permanent)' },
@@ -69,6 +74,8 @@ export function AdminUploadForm() {
 	const [quota, setQuota] = useState<QuotaPayload | null>(null);
 	const [quotaLoadState, setQuotaLoadState] = useState<'loading' | 'ok' | 'error'>('loading');
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+	const [uploadMethod, setUploadMethod] = useState<UploadMethod>('files');
+	const [rawText, setRawText] = useState('');
 
 	const loadQuota = useCallback(async () => {
 		setQuotaLoadState('loading');
@@ -99,10 +106,27 @@ export function AdminUploadForm() {
 			.catch(() => setDirectories([]));
 	}, []);
 
-	const clientBlock = useMemo(() => (quota ? clientUploadBlockMessage(quota, selectedFiles) : null), [quota, selectedFiles]);
+	useEffect(() => {
+		if (uploadMethod === 'rawText') {
+			setFileResetKey(k => k + 1);
+			setSelectedFiles([]);
+		} else {
+			setRawText('');
+		}
+	}, [uploadMethod]);
+
+	const filesForQuota = useMemo(() => {
+		if (uploadMethod === 'rawText') {
+			if (rawText.length === 0) return [];
+			return [buildTextUploadFile(rawText, filename)];
+		}
+		return selectedFiles;
+	}, [uploadMethod, rawText, filename, selectedFiles]);
+
+	const clientBlock = useMemo(() => (quota ? clientUploadBlockMessage(quota, filesForQuota) : null), [quota, filesForQuota]);
 
 	const submitBlockedByClient = Boolean(quota && clientBlock);
-	const singleFileOnly = selectedFiles.length <= 1;
+	const singleFileOnly = uploadMethod === 'rawText' || selectedFiles.length <= 1;
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -111,19 +135,30 @@ export function AdminUploadForm() {
 		setUploading(true);
 
 		try {
-			const input = fileRef.current;
-			const list = input?.files;
-			if (!list?.length) {
-				setError('Please select at least one file');
-				setUploading(false);
-				return;
-			}
+			let files: File[];
 
-			const files = Array.from(list).filter(f => f.size > 0);
-			if (files.length === 0) {
-				setError('Please select at least one file');
-				setUploading(false);
-				return;
+			if (uploadMethod === 'rawText') {
+				if (rawText.length === 0) {
+					setError('Please enter some text');
+					setUploading(false);
+					return;
+				}
+				files = [buildTextUploadFile(rawText, filename)];
+			} else {
+				const input = fileRef.current;
+				const list = input?.files;
+				if (!list?.length) {
+					setError('Please select at least one file');
+					setUploading(false);
+					return;
+				}
+
+				files = Array.from(list).filter(f => f.size > 0);
+				if (files.length === 0) {
+					setError('Please select at least one file');
+					setUploading(false);
+					return;
+				}
 			}
 
 			if (files.length > 1 && shortSlug.trim()) {
@@ -147,7 +182,7 @@ export function AdminUploadForm() {
 			}
 			const trimmed = filename.trim();
 			if (files.length === 1 && trimmed) {
-				formData.set('filename', trimmed);
+				formData.set('filename', uploadMethod === 'rawText' ? files[0].name : trimmed);
 			}
 			if (files.length === 1 && shortSlug.trim()) {
 				formData.set('shortSlug', shortSlug.trim());
@@ -184,6 +219,7 @@ export function AdminUploadForm() {
 				setDirectory('');
 				setFileResetKey(k => k + 1);
 				setSelectedFiles([]);
+				setRawText('');
 				void loadQuota();
 			}
 		} catch {
@@ -262,7 +298,7 @@ export function AdminUploadForm() {
 
 			<Card className="border-primary/20">
 				<CardContent>
-					<form onSubmit={handleSubmit} className="space-y-4" aria-label="Upload files">
+					<form onSubmit={handleSubmit} className="space-y-4" aria-label="Upload files or text">
 						<div aria-live="assertive" aria-atomic="true">
 							{(error || clientBlock) && (
 								<Alert variant="destructive">
@@ -271,35 +307,76 @@ export function AdminUploadForm() {
 							)}
 						</div>
 
-						<div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-							{quotaLoadState === 'loading' && <p>Loading storage quota…</p>}
-							{quotaLoadState === 'error' && <p>Could not load storage info. Limits still apply on the server.</p>}
-							{quotaLoadState === 'ok' && quota && (
-								<p>
-									Storage: {fmtMb(quota.usedBytes)} / {fmtMb(quota.limitBytes)} MB used · {fmtMb(quota.remainingBytes)} MB available ·
-									up to {fmtMb(quota.maxFileSizeBytes)} MB per file
-									{selectedFiles.length > 0 && <> · selection: {fmtMb(selectedFiles.reduce((s, f) => s + f.size, 0))} MB</>}
-								</p>
-							)}
-						</div>
+						<UploadQuotaBanner loadState={quotaLoadState} quota={quota} filesForQuota={filesForQuota} />
 
 						<div className="space-y-2">
-							<Label>
-								Files
-								<RequiredMark />
-							</Label>
-							<FileDropZone
-								key={fileResetKey}
-								inputRef={fileRef}
-								multiple
-								name="files"
-								required
-								aria-required="true"
-								onFilesChange={files => {
-									setSelectedFiles(files);
-									setError('');
-								}}
-							/>
+							<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+								<Label id="admin-upload-source-label" className="text-sm font-medium leading-none">
+									{uploadMethod === 'files' ? (
+										<>
+											Files <RequiredMark />
+										</>
+									) : (
+										<>
+											Text <RequiredMark />
+										</>
+									)}
+								</Label>
+								<RadioGroup
+									value={uploadMethod}
+									onValueChange={v => setUploadMethod(v as UploadMethod)}
+									className="flex flex-wrap items-center gap-x-4 gap-y-1"
+									aria-labelledby="admin-upload-source-label"
+								>
+									<div className="flex items-center gap-2">
+										<RadioGroupItem value="files" id="admin-upload-mode-files" />
+										<Label htmlFor="admin-upload-mode-files" className="cursor-pointer font-normal">
+											Upload files
+										</Label>
+									</div>
+									<div className="flex items-center gap-2">
+										<RadioGroupItem value="rawText" id="admin-upload-mode-raw" />
+										<Label htmlFor="admin-upload-mode-raw" className="cursor-pointer font-normal">
+											Upload raw text
+										</Label>
+									</div>
+								</RadioGroup>
+							</div>
+							{uploadMethod === 'files' ? (
+								<FileDropZone
+									key={fileResetKey}
+									inputRef={fileRef}
+									multiple
+									name="files"
+									required
+									aria-required="true"
+									onFilesChange={files => {
+										setSelectedFiles(files);
+										setError('');
+									}}
+								/>
+							) : (
+								<textarea
+									id="admin-raw-text"
+									name="rawText"
+									required
+									aria-required="true"
+									aria-labelledby="admin-upload-source-label"
+									value={rawText}
+									onChange={e => {
+										setRawText(e.target.value);
+										setError('');
+									}}
+									placeholder="Paste or type text — stored as a .txt file."
+									rows={10}
+									className={cn(
+										'placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+										'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+										'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
+										'min-h-[120px] resize-y'
+									)}
+								/>
+							)}
 						</div>
 
 						<div className="space-y-2">
@@ -310,7 +387,7 @@ export function AdminUploadForm() {
 								id="filename"
 								name="filename"
 								type="text"
-								placeholder="Leave blank to use original filename."
+								placeholder="Leave blank to use the default name."
 								value={filename}
 								onChange={e => setFilename(e.target.value)}
 								disabled={!singleFileOnly}

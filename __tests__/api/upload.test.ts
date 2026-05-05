@@ -252,6 +252,36 @@ describe('POST /api/upload', () => {
 			const callData = mockPrisma.content.create.mock.calls[0][0].data;
 			expect(callData.id).toBe('ab12cd34');
 		});
+
+		it('accepts a text/plain .txt upload', async () => {
+			mockUploader();
+			mockPrisma.content.aggregate.mockResolvedValue({ _sum: { fileSize: 0 }, _count: 0 });
+			const req = uploadRequest('/api/upload', { expiry: '1' }, { name: 'notes.txt', content: 'hello raw text', type: 'text/plain' });
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			expect(body?.success).toBe(true);
+			const callData = mockPrisma.content.create.mock.calls[0][0].data;
+			expect(callData.fileExtension).toBe('.txt');
+			expect(callData.mimeType).toContain('text');
+		});
+
+		it('accepts custom filename for single .txt upload', async () => {
+			mockUploader();
+			mockPrisma.content.aggregate.mockResolvedValue({ _sum: { fileSize: 0 }, _count: 0 });
+			const req = uploadRequest(
+				'/api/upload',
+				{ expiry: '1', filename: 'paste.txt' },
+				{
+					name: 'upload.txt',
+					content: 'x',
+					type: 'text/plain',
+				}
+			);
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			const content = body?.content as Record<string, unknown>;
+			expect(String(content.filename)).toContain('paste');
+		});
 	});
 });
 
