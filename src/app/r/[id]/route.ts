@@ -2,37 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getFilePath } from '@/lib/storage';
 import { sanitizeFilename } from '@/lib/validation';
-import { sliceTextPreviewIfRequested } from '@/lib/text-raw-preview';
+import { isInlineSafeMime, mimeBaseType, sliceTextPreviewIfRequested } from '@/lib/content-mime';
 import fs from 'fs/promises';
-
-/**
- * MIME types that are safe to render inline in the browser.
- * Everything else falls back to attachment (download).
- */
-const INLINE_SAFE_TYPES = new Set([
-	// Images
-	'image/jpeg',
-	'image/png',
-	'image/gif',
-	'image/webp',
-	'image/avif',
-	'image/bmp',
-	'image/tiff',
-	// Video
-	'video/mp4',
-	'video/webm',
-	'video/ogg',
-	// Audio
-	'audio/mpeg',
-	'audio/ogg',
-	'audio/wav',
-	'audio/webm',
-	// Documents
-	'application/pdf',
-	// Text
-	'text/plain',
-	'text/csv',
-]);
 
 /**
  * GET /r/[id] — Serve the raw file for embedding / inline viewing.
@@ -54,15 +25,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 	try {
 		const filePath = getFilePath(content.storagePath);
 		const fileBuffer = await fs.readFile(filePath);
-		const body = sliceTextPreviewIfRequested(fileBuffer, content.mimeType, textPreview);
+		const body = sliceTextPreviewIfRequested(fileBuffer, content.mimeType, textPreview, content.fileExtension);
 
 		const safeFilename = sanitizeFilename(content.filename).replace(/"/g, "'");
-		const isInlineSafe = INLINE_SAFE_TYPES.has(content.mimeType);
+		const isInlineSafe = isInlineSafeMime(content.mimeType, content.fileExtension);
 
 		const disposition = isInlineSafe ? `inline; filename="${safeFilename}"` : `attachment; filename="${safeFilename}"`;
 		const csp = isInlineSafe
 			? "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'"
 			: "default-src 'none'";
+		// Do not send HTML-oriented CSP on PDF: Chromium's iframe viewer treats it as a navigable
+		// document and can fail with "refused to connect" when default-src blocks plugin internals.
+		const isPdf = mimeBaseType(content.mimeType) === 'application/pdf';
 
 		return new NextResponse(new Uint8Array(body), {
 			headers: {
@@ -70,7 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 				'Content-Disposition': disposition,
 				'Content-Length': String(body.length),
 				'X-Content-Type-Options': 'nosniff',
-				'Content-Security-Policy': csp,
+				...(isPdf ? {} : { 'Content-Security-Policy': csp }),
 				'Cache-Control': 'private, no-cache',
 			},
 		});

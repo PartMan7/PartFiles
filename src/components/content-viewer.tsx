@@ -21,7 +21,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { REPORT_REASON_MAX_LENGTH } from '@/lib/content-report';
 import { shouldWarnBeforeDownloadOrRaw } from '@/lib/file-download-risk';
-import { TEXT_PREVIEW_MAX_BYTES } from '@/lib/text-raw-preview';
+import { isTextPreviewMime, TEXT_PREVIEW_MAX_BYTES } from '@/lib/content-mime';
 import { ClientDateYmd } from '@/components/client-date-ymd';
 
 /** Serialisable content object passed from the server page. */
@@ -56,9 +56,6 @@ function isAudio(mime: string) {
 }
 function isPdf(mime: string) {
 	return mime === 'application/pdf';
-}
-function isText(mime: string) {
-	return mime === 'text/plain' || mime === 'text/csv';
 }
 
 function formatSize(bytes: number): string {
@@ -433,7 +430,7 @@ export function ContentViewer({ content, contentBaseUrl }: { content: ContentVie
 						</PreviewContextGuard>
 					)}
 
-					{isText(mime) && (
+					{isTextPreviewMime(mime, content.fileExtension) && (
 						<PreviewContextGuard active={warnBeforeRawOrDownload} onRiskyContextMenu={onPreviewContextMenu}>
 							<TextFilePreview
 								previewUrl={`${rawUrl}?textPreview=1`}
@@ -443,7 +440,7 @@ export function ContentViewer({ content, contentBaseUrl }: { content: ContentVie
 						</PreviewContextGuard>
 					)}
 
-					{!isImage(mime) && !isVideo(mime) && !isAudio(mime) && !isPdf(mime) && !isText(mime) && (
+					{!isImage(mime) && !isVideo(mime) && !isAudio(mime) && !isPdf(mime) && !isTextPreviewMime(mime, content.fileExtension) && (
 						<PreviewContextGuard active={warnBeforeRawOrDownload} onRiskyContextMenu={onPreviewContextMenu}>
 							<div className="text-center py-12 space-y-4">
 								<p className="text-muted-foreground">This file type ({mime}) cannot be previewed in the browser.</p>

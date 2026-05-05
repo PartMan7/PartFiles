@@ -3,35 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getFilePath } from '@/lib/storage';
 import { sanitizeFilename } from '@/lib/validation';
 import fs from 'fs/promises';
-
-/**
- * MIME types that are safe to render inline in the browser.
- * Everything else falls back to attachment (download).
- */
-const INLINE_SAFE_TYPES = new Set([
-	// Images
-	'image/jpeg',
-	'image/png',
-	'image/gif',
-	'image/webp',
-	'image/avif',
-	'image/bmp',
-	'image/tiff',
-	// Video
-	'video/mp4',
-	'video/webm',
-	'video/ogg',
-	// Audio
-	'audio/mpeg',
-	'audio/ogg',
-	'audio/wav',
-	'audio/webm',
-	// Documents
-	'application/pdf',
-	// Text
-	'text/plain',
-	'text/csv',
-]);
+import { isInlineSafeMime } from '@/lib/content-mime';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
@@ -50,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 		const fileBuffer = await fs.readFile(filePath);
 
 		const safeFilename = sanitizeFilename(content.filename).replace(/"/g, "'");
-		const isInlineSafe = INLINE_SAFE_TYPES.has(content.mimeType);
+		const isInlineSafe = isInlineSafeMime(content.mimeType, content.fileExtension);
 
 		// Use inline disposition for safe types, attachment for everything else
 		const disposition = isInlineSafe ? `inline; filename="${safeFilename}"` : `attachment; filename="${safeFilename}"`;

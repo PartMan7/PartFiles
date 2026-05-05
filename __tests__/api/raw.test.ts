@@ -85,7 +85,7 @@ describe('GET /r/[id] (raw file)', () => {
 		expect(res.headers.get('Content-Security-Policy')).toBe("default-src 'none'");
 	});
 
-	it('serves PDF inline for embedding', async () => {
+	it('serves PDF inline for embedding without CSP (Chromium PDF iframes)', async () => {
 		mockAdmin();
 		mockPrisma.content.findUnique.mockResolvedValue({
 			id: 'abc123',
@@ -99,6 +99,7 @@ describe('GET /r/[id] (raw file)', () => {
 		const res = await GET(makeReq(), { params: Promise.resolve({ id: 'abc123' }) });
 		expect(res.status).toBe(200);
 		expect(res.headers.get('Content-Disposition')).toContain('inline');
+		expect(res.headers.get('Content-Security-Policy')).toBeNull();
 	});
 
 	it('serves permanent content (no expiresAt)', async () => {

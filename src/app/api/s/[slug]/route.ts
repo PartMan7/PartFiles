@@ -3,29 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getFilePath } from '@/lib/storage';
 import { sanitizeFilename } from '@/lib/validation';
 import fs from 'fs/promises';
-
-/**
- * MIME types safe to serve inline (mirrors the raw route allowlist).
- */
-const INLINE_SAFE_TYPES = new Set([
-	'image/jpeg',
-	'image/png',
-	'image/gif',
-	'image/webp',
-	'image/avif',
-	'image/bmp',
-	'image/tiff',
-	'video/mp4',
-	'video/webm',
-	'video/ogg',
-	'audio/mpeg',
-	'audio/ogg',
-	'audio/wav',
-	'audio/webm',
-	'application/pdf',
-	'text/plain',
-	'text/csv',
-]);
+import { isInlineSafeMime } from '@/lib/content-mime';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
 	const { slug } = await params;
@@ -48,7 +26,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
 		const fileBuffer = await fs.readFile(filePath);
 
 		const safeFilename = sanitizeFilename(content.filename).replace(/"/g, "'");
-		const isInlineSafe = INLINE_SAFE_TYPES.has(content.mimeType);
+		const isInlineSafe = isInlineSafeMime(content.mimeType, content.fileExtension);
 
 		const disposition = isInlineSafe ? `inline; filename="${safeFilename}"` : `attachment; filename="${safeFilename}"`;
 		const csp = isInlineSafe

@@ -50,6 +50,7 @@ export const ALLOWED_EXTENSIONS = new Set([
 	'.ods',
 	'.odp',
 	'.txt',
+	'.log',
 	'.csv',
 	'.rtf',
 	// Archives
@@ -81,6 +82,12 @@ export const ALLOWED_EXTENSIONS = new Set([
 	'.otf',
 	'.eot',
 ]);
+
+/**
+ * Plain-text-by-convention extensions: same inline preview path as .txt.
+ * If MIME lookup is application/octet-stream, we store text/plain (see content-mime).
+ */
+export const EXTENSIONS_STORED_AS_TEXT_PLAIN = new Set(['.txt', '.log']);
 
 // SECURITY: Explicitly blocked extensions (even if someone adds them to allowed)
 export const BLOCKED_EXTENSIONS = new Set([

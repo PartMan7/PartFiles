@@ -18,7 +18,7 @@ import { saveFile, deleteFile } from '@/lib/storage';
 import { generateAndSavePreview, deletePreview, getImageDimensions, isPreviewable } from '@/lib/preview';
 import { v4 as uuidv4 } from 'uuid';
 import { getContentUrl, getRawFilePublicUrl } from '@/lib/url';
-import { lookup } from 'mime-types';
+import { mimeTypeForUploadedFile } from '@/lib/upload-mime';
 import { generateContentId } from '@/lib/id';
 
 type AdminContentPayload = {
@@ -65,7 +65,7 @@ async function processOneAdminUpload(
 
 		const sanitized = sanitizeFilename(customFilename || originalName);
 		const storedFilename = `${uuidv4()}-${sanitized}`;
-		const mimeType = lookup(originalName) || 'application/octet-stream';
+		const mimeType = mimeTypeForUploadedFile(originalName, extResult.extension);
 
 		const contentId = await generateContentId();
 

@@ -14,7 +14,7 @@ import {
 import { saveFile, deleteFile } from '@/lib/storage';
 import { generateAndSavePreview, deletePreview, getImageDimensions, isPreviewable } from '@/lib/preview';
 import { v4 as uuidv4 } from 'uuid';
-import { lookup } from 'mime-types';
+import { mimeTypeForUploadedFile } from '@/lib/upload-mime';
 import { DEFAULT_EXPIRY_HOURS, maxUploadFileSizeBytesForRole } from '@/lib/config';
 import { getContentUrl, getRawFilePublicUrl } from '@/lib/url';
 
@@ -59,7 +59,7 @@ async function processOneUpload(
 
 		const sanitized = sanitizeFilename(customFilename || originalName);
 		const storedFilename = `${uuidv4()}-${sanitized}`;
-		const mimeType = lookup(originalName) || 'application/octet-stream';
+		const mimeType = mimeTypeForUploadedFile(originalName, extResult.extension);
 
 		const contentId = await generateContentId();
 

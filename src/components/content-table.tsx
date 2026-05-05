@@ -76,7 +76,8 @@ function extColor(ext: string): { bg: string; fg: string; accent: string } {
 	const e = ext.toLowerCase().replace(/^\./, '');
 	// Documents
 	if (['pdf'].includes(e)) return { bg: 'bg-ctp-red/10', fg: 'text-ctp-red', accent: 'bg-ctp-red' };
-	if (['doc', 'docx', 'odt', 'rtf', 'txt'].includes(e)) return { bg: 'bg-ctp-blue/10', fg: 'text-ctp-blue', accent: 'bg-ctp-blue' };
+	if (['doc', 'docx', 'odt', 'rtf', 'txt', 'log'].includes(e))
+		return { bg: 'bg-ctp-blue/10', fg: 'text-ctp-blue', accent: 'bg-ctp-blue' };
 	if (['xls', 'xlsx', 'ods', 'csv'].includes(e)) return { bg: 'bg-ctp-green/10', fg: 'text-ctp-green', accent: 'bg-ctp-green' };
 	if (['ppt', 'pptx', 'odp'].includes(e)) return { bg: 'bg-ctp-peach/10', fg: 'text-ctp-peach', accent: 'bg-ctp-peach' };
 	// Archives
