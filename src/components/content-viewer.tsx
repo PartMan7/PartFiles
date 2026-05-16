@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, type ReactNode } from 'react';
-import { useSetContentPageCopyInfo } from '@/components/content-page-copy-context';
+import { useSetContentPageCopyInfo, type ContentPageCopyInfo } from '@/components/content-page-copy-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -355,12 +355,15 @@ export function ContentViewer({ content, contentBaseUrl }: { content: ContentVie
 			setCopyInfo(null);
 			return;
 		}
-		setCopyInfo({
+		const snapshot = {
 			contentId: content.id,
 			shortSlugs: content.shortSlugs.map(s => s.slug),
 			contentBaseUrl,
-		});
-		return () => setCopyInfo(null);
+		};
+		setCopyInfo(snapshot);
+		return () => {
+			setCopyInfo((prev: ContentPageCopyInfo | null) => (prev?.contentId === snapshot.contentId ? null : prev));
+		};
 	}, [expired, content.id, content.shortSlugs, contentBaseUrl, setCopyInfo]);
 
 	if (expired) {

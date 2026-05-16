@@ -8,6 +8,9 @@ type LastUploadContextValue = {
 	/** Full `/c/{id}` URLs from the most recent upload (batch = multiple lines). */
 	lastUploadedContentUrls: string[];
 	setLastUploadedContentUrls: (urls: string[]) => void;
+	/** Short URL slug(s) from the most recent admin upload (single-file slug); empty after uploads without a slug. */
+	lastShortSlugs: string[];
+	setLastShortSlugs: (slugs: string[]) => void;
 };
 
 const LastUploadContext = createContext<LastUploadContextValue | null>(null);
@@ -15,6 +18,7 @@ const LastUploadContext = createContext<LastUploadContextValue | null>(null);
 export function LastUploadProvider({ children }: { children: ReactNode }) {
 	const [lastRawUrls, setLastRawUrlsState] = useState<string[]>([]);
 	const [lastUploadedContentUrls, setLastUploadedContentUrlsState] = useState<string[]>([]);
+	const [lastShortSlugs, setLastShortSlugsState] = useState<string[]>([]);
 
 	const setLastRawUrls = useCallback((urls: string[]) => {
 		setLastRawUrlsState(urls);
@@ -24,9 +28,20 @@ export function LastUploadProvider({ children }: { children: ReactNode }) {
 		setLastUploadedContentUrlsState(urls);
 	}, []);
 
+	const setLastShortSlugs = useCallback((slugs: string[]) => {
+		setLastShortSlugsState(slugs);
+	}, []);
+
 	const value = useMemo(
-		() => ({ lastRawUrls, setLastRawUrls, lastUploadedContentUrls, setLastUploadedContentUrls }),
-		[lastRawUrls, setLastRawUrls, lastUploadedContentUrls, setLastUploadedContentUrls]
+		() => ({
+			lastRawUrls,
+			setLastRawUrls,
+			lastUploadedContentUrls,
+			setLastUploadedContentUrls,
+			lastShortSlugs,
+			setLastShortSlugs,
+		}),
+		[lastRawUrls, setLastRawUrls, lastUploadedContentUrls, setLastUploadedContentUrls, lastShortSlugs, setLastShortSlugs]
 	);
 
 	return <LastUploadContext.Provider value={value}>{children}</LastUploadContext.Provider>;

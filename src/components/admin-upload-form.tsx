@@ -60,7 +60,7 @@ function parseAdminUploadResponse(data: Record<string, unknown>): AdminResultIte
 }
 
 export function AdminUploadForm() {
-	const { setLastRawUrls, setLastUploadedContentUrls } = useLastUpload();
+	const { setLastRawUrls, setLastUploadedContentUrls, setLastShortSlugs } = useLastUpload();
 	const [uploading, setUploading] = useState(false);
 	const [error, setError] = useState('');
 	const [results, setResults] = useState<AdminResultItem[] | null>(null);
@@ -206,12 +206,23 @@ export function AdminUploadForm() {
 
 				const rawUrls = items.map(c => c.rawUrl).filter(Boolean);
 				const pageUrls = items.map(c => c.url).filter(Boolean);
+				setLastShortSlugs(items.flatMap(c => c.shortSlugs ?? []));
 				if (rawUrls.length) {
 					setLastRawUrls(rawUrls);
 				}
 				if (pageUrls.length) {
 					setLastUploadedContentUrls(pageUrls);
 				}
+
+				/* Move focus out of text fields so single-letter shortcuts (R / S / E) work again */
+				requestAnimationFrame(() => {
+					const el = document.activeElement;
+					if (el instanceof HTMLInputElement && !['button', 'checkbox', 'file', 'hidden', 'radio', 'submit'].includes(el.type)) {
+						el.blur();
+					} else if (el instanceof HTMLTextAreaElement) {
+						el.blur();
+					}
+				});
 
 				toast.success(files.length > 1 ? 'Files uploaded successfully' : 'File uploaded successfully');
 				setFilename('');

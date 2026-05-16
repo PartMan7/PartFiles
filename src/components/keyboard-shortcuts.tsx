@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 import { useLastUpload } from '@/components/last-upload-context';
 import { useContentPageCopyInfo } from '@/components/content-page-copy-context';
 import { persistUploadMode, readStoredUploadMode, uploadHrefForMode } from '@/lib/upload-mode-preference';
+import { getContentUrl } from '@/lib/url';
 import { isAdmin, canBrowseContent } from '@/lib/permissions';
 import { toast } from 'sonner';
 
@@ -66,7 +67,7 @@ export function KeyboardShortcuts() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const mod = useModKey();
-	const { lastRawUrls, lastUploadedContentUrls, setLastUploadedContentUrls } = useLastUpload();
+	const { lastRawUrls, lastUploadedContentUrls, lastShortSlugs, setLastUploadedContentUrls } = useLastUpload();
 	const contentPageInfo = useContentPageCopyInfo();
 	const prevPathnameRef = useRef(pathname);
 	const { data: session, status } = useSession();
@@ -246,31 +247,48 @@ export function KeyboardShortcuts() {
 				}
 
 				if (key === 's') {
-					if (page?.shortSlugs.length) {
-						const base = page.contentBaseUrl;
-						const text = page.shortSlugs.map(slug => `${base}/s/${slug}`).join('\n');
-						copy(text, page.shortSlugs.length > 1 ? 'Short URLs copied' : 'Short URL copied');
+					const onContentPage = !!page;
+					const pageSlugs = page?.shortSlugs ?? [];
+					const slugs = pageSlugs.length > 0 ? pageSlugs : !onContentPage && lastShortSlugs.length > 0 ? lastShortSlugs : [];
+					if (slugs.length > 0) {
+						const base = page?.contentBaseUrl ?? getContentUrl();
+						const text = slugs.map(slug => `${base}/s/${slug}`).join('\n');
+						copy(text, slugs.length > 1 ? 'Short URLs copied' : 'Short URL copied');
 					} else {
 						e.preventDefault();
-						toast.error('No short URLs on this page');
+						toast.error(onContentPage ? 'No short URLs on this page' : 'No short URL — upload with a slug or open a file page');
 					}
 					return;
 				}
 
 				if (key === 'e') {
-					if (page?.shortSlugs.length) {
-						const base = page.contentBaseUrl;
-						const text = page.shortSlugs.map(slug => `${base}/e/${slug}`).join('\n');
-						copy(text, page.shortSlugs.length > 1 ? 'Embed URLs copied' : 'Embed URL copied');
+					const onContentPage = !!page;
+					const pageSlugs = page?.shortSlugs ?? [];
+					const slugs = pageSlugs.length > 0 ? pageSlugs : !onContentPage && lastShortSlugs.length > 0 ? lastShortSlugs : [];
+					if (slugs.length > 0) {
+						const base = page?.contentBaseUrl ?? getContentUrl();
+						const text = slugs.map(slug => `${base}/e/${slug}`).join('\n');
+						copy(text, slugs.length > 1 ? 'Embed URLs copied' : 'Embed URL copied');
 					} else {
 						e.preventDefault();
-						toast.error('No embed URL — add a short slug on this file');
+						toast.error(
+							onContentPage ? 'No embed URL — add a short slug on this file' : 'No embed URL — upload with a slug or open a file page'
+						);
 					}
 					return;
 				}
 			}
 		},
-		[router, pathname, lastRawUrls, lastUploadedContentUrls, contentPageInfo, showAdminShortcuts, showMyUploadsShortcut]
+		[
+			router,
+			pathname,
+			lastRawUrls,
+			lastUploadedContentUrls,
+			lastShortSlugs,
+			contentPageInfo,
+			showAdminShortcuts,
+			showMyUploadsShortcut,
+		]
 	);
 
 	useEffect(() => {
