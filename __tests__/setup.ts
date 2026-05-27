@@ -99,16 +99,32 @@ export const mockStorage = {
 vi.mock('@/lib/storage', () => mockStorage);
 
 // ─── Mock: fs/promises ───────────────────────────────────────────────────────
-vi.mock('fs/promises', () => ({
-	default: {
-		readFile: vi.fn().mockResolvedValue(Buffer.from('mock file content')),
+vi.mock('fs/promises', () => {
+	const mockFileBuffer = Buffer.from('mock file content');
+	const createMockFileHandle = () => ({
+		read: vi.fn(async (buffer: Buffer, offset: number, length: number, position: number) => {
+			const end = Math.min(position + length, mockFileBuffer.length);
+			const bytesRead = Math.max(0, end - position);
+			mockFileBuffer.copy(buffer, offset, position, position + bytesRead);
+			return { bytesRead };
+		}),
+		close: vi.fn().mockResolvedValue(undefined),
+	});
+	return {
+		default: {
+			readFile: vi.fn().mockResolvedValue(mockFileBuffer),
+			writeFile: vi.fn().mockResolvedValue(undefined),
+			unlink: vi.fn().mockResolvedValue(undefined),
+			stat: vi.fn().mockResolvedValue({ size: mockFileBuffer.length }),
+			open: vi.fn().mockImplementation(async () => createMockFileHandle()),
+		},
+		readFile: vi.fn().mockResolvedValue(mockFileBuffer),
 		writeFile: vi.fn().mockResolvedValue(undefined),
 		unlink: vi.fn().mockResolvedValue(undefined),
-	},
-	readFile: vi.fn().mockResolvedValue(Buffer.from('mock file content')),
-	writeFile: vi.fn().mockResolvedValue(undefined),
-	unlink: vi.fn().mockResolvedValue(undefined),
-}));
+		stat: vi.fn().mockResolvedValue({ size: mockFileBuffer.length }),
+		open: vi.fn().mockImplementation(async () => createMockFileHandle()),
+	};
+});
 
 // ─── Mock: @/lib/preview ──────────────────────────────────────────────────────
 export const mockPreview = {

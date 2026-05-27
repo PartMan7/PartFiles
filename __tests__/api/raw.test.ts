@@ -4,6 +4,7 @@ import { mockAdmin, mockGuest, mockUnauthenticated, mockPrisma } from '../setup'
 import { parseResponse } from '../helpers';
 import { NextRequest } from 'next/server';
 import fs from 'fs/promises';
+import { contentEtag } from '@/lib/file-serve';
 
 describe('GET /r/[id] (raw file)', () => {
 	const makeReq = () => new NextRequest('http://localhost:3000/r/abc123');
@@ -138,8 +139,104 @@ describe('GET /r/[id] (raw file)', () => {
 		expect(res.headers.get('Content-Length')).toBe(String(100 * 1024));
 	});
 
+	it('serves video with Accept-Ranges and public cache when permanent', async () => {
+		mockGuest();
+		mockPrisma.content.findUnique.mockResolvedValue({
+			id: 'abc123',
+			filename: 'clip.mp4',
+			storagePath: 'path/clip.mp4',
+			expiresAt: null,
+			mimeType: 'video/mp4',
+			fileExtension: '.mp4',
+			fileSize: 17,
+		});
+
+		const res = await GET(makeReq(), { params: Promise.resolve({ id: 'abc123' }) });
+		expect(res.status).toBe(200);
+		expect(res.headers.get('Accept-Ranges')).toBe('bytes');
+		expect(res.headers.get('Cache-Control')).toContain('public');
+		expect(res.headers.get('ETag')).toBe(
+			contentEtag({
+				id: 'abc123',
+				filename: 'clip.mp4',
+				storagePath: 'path/clip.mp4',
+				mimeType: 'video/mp4',
+				fileSize: 17,
+				expiresAt: null,
+			})
+		);
+	});
+
+	it('returns 206 for Range requests on video', async () => {
+		mockGuest();
+		mockPrisma.content.findUnique.mockResolvedValue({
+			id: 'abc123',
+			filename: 'clip.mp4',
+			storagePath: 'path/clip.mp4',
+			expiresAt: null,
+			mimeType: 'video/mp4',
+			fileExtension: '.mp4',
+			fileSize: 17,
+		});
+
+		const req = new NextRequest('http://localhost:3000/r/abc123', {
+			headers: { Range: 'bytes=0-9' },
+		});
+		const res = await GET(req, { params: Promise.resolve({ id: 'abc123' }) });
+		expect(res.status).toBe(206);
+		expect(res.headers.get('Content-Range')).toBe('bytes 0-9/17');
+		expect(res.headers.get('Content-Length')).toBe('10');
+		const buf = Buffer.from(await res.arrayBuffer());
+		expect(buf.length).toBe(10);
+	});
+
+	it('serves QuickTime (.mov) inline for embedding', async () => {
+		mockGuest();
+		mockPrisma.content.findUnique.mockResolvedValue({
+			id: 'abc123',
+			filename: 'clip.mov',
+			storagePath: 'path/clip.mov',
+			expiresAt: null,
+			mimeType: 'video/quicktime',
+			fileExtension: '.mov',
+			fileSize: 17,
+		});
+
+		const res = await GET(makeReq(), { params: Promise.resolve({ id: 'abc123' }) });
+		expect(res.status).toBe(200);
+		expect(res.headers.get('Content-Type')).toBe('video/quicktime');
+		expect(res.headers.get('Content-Disposition')).toContain('inline');
+	});
+
+	it('returns 304 when ETag matches', async () => {
+		mockGuest();
+		mockPrisma.content.findUnique.mockResolvedValue({
+			id: 'abc123',
+			filename: 'clip.mp4',
+			storagePath: 'path/clip.mp4',
+			expiresAt: null,
+			mimeType: 'video/mp4',
+			fileExtension: '.mp4',
+			fileSize: 17,
+		});
+		const etag = contentEtag({
+			id: 'abc123',
+			filename: 'clip.mp4',
+			storagePath: 'path/clip.mp4',
+			mimeType: 'video/mp4',
+			fileSize: 17,
+			expiresAt: null,
+		});
+		const req = new NextRequest('http://localhost:3000/r/abc123', {
+			headers: { 'If-None-Match': etag },
+		});
+		const res = await GET(req, { params: Promise.resolve({ id: 'abc123' }) });
+		expect(res.status).toBe(304);
+	});
+
 	it('ignores textPreview=1 for non-text MIME types', async () => {
 		mockGuest();
+		(fs.stat as ReturnType<typeof vi.fn>).mockResolvedValue({ size: 17 });
 		const jpegBody = Buffer.from('mock file content');
 		(fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(jpegBody);
 		mockPrisma.content.findUnique.mockResolvedValue({

@@ -1,11 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getFilePath } from '@/lib/storage';
-import { sanitizeFilename } from '@/lib/validation';
-import fs from 'fs/promises';
-import { isInlineSafeMime } from '@/lib/content-mime';
+import { serveContentFile } from '@/lib/file-serve';
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
 	const { slug } = await params;
 
 	const slugRecord = await prisma.shortSlug.findUnique({
@@ -13,38 +10,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
 		include: { content: true },
 	});
 	if (!slugRecord) {
-		return NextResponse.json({ error: 'Content not found' }, { status: 404 });
+		return Response.json({ error: 'Content not found' }, { status: 404 });
 	}
 	const content = slugRecord.content;
 
 	if (content.expiresAt && new Date(content.expiresAt) < new Date()) {
-		return NextResponse.json({ error: 'Content has expired' }, { status: 410 });
+		return Response.json({ error: 'Content has expired' }, { status: 410 });
 	}
 
-	try {
-		const filePath = getFilePath(content.storagePath);
-		const fileBuffer = await fs.readFile(filePath);
-
-		const safeFilename = sanitizeFilename(content.filename).replace(/"/g, "'");
-		const isInlineSafe = isInlineSafeMime(content.mimeType, content.fileExtension);
-
-		const disposition = isInlineSafe ? `inline; filename="${safeFilename}"` : `attachment; filename="${safeFilename}"`;
-		const csp = isInlineSafe
-			? "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'"
-			: "default-src 'none'";
-
-		return new NextResponse(fileBuffer, {
-			headers: {
-				'Content-Type': content.mimeType,
-				'Content-Disposition': disposition,
-				'Content-Length': String(content.fileSize),
-				'X-Content-Type-Options': 'nosniff',
-				'X-Frame-Options': 'DENY',
-				'Content-Security-Policy': csp,
-				'Cache-Control': 'private, no-cache',
-			},
-		});
-	} catch {
-		return NextResponse.json({ error: 'File not found on disk' }, { status: 404 });
-	}
+	return serveContentFile(
+		{
+			id: content.id,
+			filename: content.filename,
+			storagePath: content.storagePath,
+			mimeType: content.mimeType,
+			fileExtension: content.fileExtension,
+			fileSize: content.fileSize,
+			expiresAt: content.expiresAt,
+		},
+		{ req, frameDeny: true }
+	);
 }

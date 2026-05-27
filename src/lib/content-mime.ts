@@ -11,6 +11,28 @@ function normalizeExtensionDot(ext: string): string {
 	return t.startsWith('.') ? t : `.${t}`;
 }
 
+/** Canonical MIME for allowed media extensions when lookup yields octet-stream. */
+const EXTENSION_CANONICAL_MIME: Record<string, string> = {
+	'.mp4': 'video/mp4',
+	'.webm': 'video/webm',
+	'.ogg': 'video/ogg',
+	'.ogv': 'video/ogg',
+	'.mov': 'video/quicktime',
+	'.avi': 'video/x-msvideo',
+	'.mkv': 'video/x-matroska',
+	'.flv': 'video/x-flv',
+	'.mp3': 'audio/mpeg',
+	'.wav': 'audio/wav',
+	'.oga': 'audio/ogg',
+};
+
+export function effectiveContentMime(mimeType: string, fileExtension?: string): string {
+	const base = mimeBaseType(mimeType);
+	if (base !== 'application/octet-stream') return base;
+	const ext = normalizeExtensionDot(fileExtension ?? '');
+	return EXTENSION_CANONICAL_MIME[ext] ?? base;
+}
+
 /**
  * MIME types that are safe to render inline in the browser (base type only).
  * Everything else falls back to attachment unless overridden by extension rules below.
@@ -40,10 +62,16 @@ const INLINE_SAFE_MIME_BASE_TYPES = new Set([
 	'text/csv',
 ]);
 
-export function isInlineSafeMime(mimeType: string, fileExtension?: string): boolean {
+export function isStreamableMedia(mimeType: string): boolean {
 	const base = mimeBaseType(mimeType);
+	return base.startsWith('video/') || base.startsWith('audio/');
+}
+
+export function isInlineSafeMime(mimeType: string, fileExtension?: string): boolean {
+	const base = effectiveContentMime(mimeType, fileExtension);
 	if (INLINE_SAFE_MIME_BASE_TYPES.has(base)) return true;
-	if (fileExtension !== undefined && base === 'application/octet-stream') {
+	if (base.startsWith('video/') || base.startsWith('audio/')) return true;
+	if (fileExtension !== undefined && mimeBaseType(mimeType) === 'application/octet-stream') {
 		return EXTENSIONS_STORED_AS_TEXT_PLAIN.has(normalizeExtensionDot(fileExtension));
 	}
 	return false;

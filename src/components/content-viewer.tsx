@@ -21,7 +21,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { REPORT_REASON_MAX_LENGTH } from '@/lib/content-report';
 import { shouldWarnBeforeDownloadOrRaw } from '@/lib/file-download-risk';
-import { isTextPreviewMime, TEXT_PREVIEW_MAX_BYTES } from '@/lib/content-mime';
+import { effectiveContentMime, isTextPreviewMime, TEXT_PREVIEW_MAX_BYTES } from '@/lib/content-mime';
 import { ClientDateYmd } from '@/components/client-date-ymd';
 
 /** Serialisable content object passed from the server page. */
@@ -301,7 +301,7 @@ export function ContentViewer({ content, contentBaseUrl }: { content: ContentVie
 
 	const rawUrl = `${contentBaseUrl}/r/${content.id}`;
 	const downloadUrl = `${contentBaseUrl}/api/content/${content.id}`;
-	const mime = content.mimeType;
+	const mime = effectiveContentMime(content.mimeType, content.fileExtension);
 
 	const warnBeforeRawOrDownload = shouldWarnBeforeDownloadOrRaw(content.fileExtension);
 	const extLabel = content.fileExtension.trim() || '(none)';
