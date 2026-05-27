@@ -8,7 +8,7 @@ export default defineConfig({
 		globals: true,
 		environment: 'node',
 		setupFiles: ['./__tests__/setup.ts'],
-		include: ['__tests__/**/*.test.ts'],
+		include: ['__tests__/**/*.test.{ts,tsx}', '__tests__/**/*.vitest.{ts,tsx}'],
 	},
 	resolve: {
 		alias: {

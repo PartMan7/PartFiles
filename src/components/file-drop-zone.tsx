@@ -20,6 +20,8 @@ interface FileDropZoneProps {
 	multiple?: boolean;
 	/** Called whenever the selected files change — multi-file mode */
 	onFilesChange?: (files: File[]) => void;
+	/** Controlled file selection (multi-file mode) */
+	files?: File[];
 	/** Fired after a non-empty file was applied from a clipboard paste */
 	onPastedFiles?: () => void;
 }
@@ -42,6 +44,7 @@ export function FileDropZone({
 	onFileChange,
 	multiple = false,
 	onFilesChange,
+	files: controlledFiles,
 	onPastedFiles,
 }: FileDropZoneProps) {
 	const internalRef = useRef<HTMLInputElement>(null);
@@ -53,26 +56,46 @@ export function FileDropZone({
 	const inputName = name ?? (multiple ? 'files' : 'file');
 
 	const [dragging, setDragging] = useState(false);
-	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 	const selectedFilesRef = useRef<File[]>([]);
-	selectedFilesRef.current = selectedFiles;
+	const isControlled = controlledFiles !== undefined;
+	const activeFiles = isControlled ? controlledFiles : selectedFiles;
+	selectedFilesRef.current = activeFiles;
 	const dragCounter = useRef(0);
 
 	function syncInputFiles(files: File[]) {
+		if (typeof DataTransfer === 'undefined') return;
 		const dt = new DataTransfer();
 		for (const f of files) {
 			dt.items.add(f);
 		}
 		if (fileInputRef.current) {
-			fileInputRef.current.files = dt.files;
+			try {
+				fileInputRef.current.files = dt.files;
+			} catch {
+				/* unsupported test environment */
+			}
 		}
 	}
 
-	/** Apply file(s) to the hidden input and update state */
+	useEffect(() => {
+		if (!isControlled) return;
+		if (controlledFiles.length > 0 && typeof DataTransfer !== 'undefined') {
+			const dt = new DataTransfer();
+			for (const f of controlledFiles) {
+				dt.items.add(f);
+			}
+			try {
+				fileInputRef.current!.files = dt.files;
+			} catch {
+				/* unsupported test environment */
+			}
+		}
+		setSelectedFiles(controlledFiles);
+	}, [isControlled, controlledFiles, fileInputRef]);
+
 	function applyFile(file: File) {
 		syncInputFiles([file]);
-		setSelectedFile(file);
 		setSelectedFiles([file]);
 		onFileChange?.(file);
 		onFilesChange?.([file]);
@@ -83,7 +106,6 @@ export function FileDropZone({
 		if (arr.length === 0) return;
 		if (multiple) {
 			syncInputFiles(arr);
-			setSelectedFile(null);
 			setSelectedFiles(arr);
 			onFileChange?.(null);
 			onFilesChange?.(arr);
@@ -96,7 +118,6 @@ export function FileDropZone({
 		if (fileInputRef.current) {
 			fileInputRef.current.value = '';
 		}
-		setSelectedFile(null);
 		setSelectedFiles([]);
 		onFileChange?.(null);
 		onFilesChange?.([]);
@@ -107,7 +128,7 @@ export function FileDropZone({
 			clearFile();
 			return;
 		}
-		const next = selectedFiles.filter((_, i) => i !== index);
+		const next = activeFiles.filter((_, i) => i !== index);
 		if (next.length === 0) {
 			clearFile();
 		} else {
@@ -215,8 +236,8 @@ export function FileDropZone({
 		}
 	}
 
-	const hasSelection = multiple ? selectedFiles.length > 0 : selectedFile !== null;
-	const count = multiple ? selectedFiles.length : selectedFile ? 1 : 0;
+	const hasSelection = multiple ? activeFiles.length > 0 : activeFiles.length > 0;
+	const count = activeFiles.length;
 
 	return (
 		<div className="space-y-2">
@@ -241,7 +262,7 @@ export function FileDropZone({
 					hasSelection
 						? multiple
 							? `${count} files selected. Click to change selection, or drag and drop, or paste from clipboard.`
-							: `Selected file: ${selectedFile!.name}. Click to change file, or drag and drop, or paste from clipboard.`
+							: `Selected file: ${activeFiles[0]!.name}. Click to change file, or drag and drop, or paste from clipboard.`
 						: multiple
 							? 'Choose files. Click to browse, drag and drop, or paste from clipboard.'
 							: 'Choose a file. Click to browse, drag and drop, or paste from clipboard.'
@@ -262,9 +283,9 @@ export function FileDropZone({
 							: 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
 				)}
 			>
-				{multiple && selectedFiles.length > 0 ? (
+				{multiple && activeFiles.length > 0 ? (
 					<div className="flex flex-col gap-2 w-full max-h-48 overflow-y-auto">
-						{selectedFiles.map((f, index) => (
+						{activeFiles.map((f, index) => (
 							<div key={`${f.name}-${index}`} className="flex items-center gap-3 w-full">
 								<div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 shrink-0">
 									<FileIcon className="h-5 w-5 text-primary" aria-hidden="true" />
@@ -289,14 +310,14 @@ export function FileDropZone({
 							</div>
 						))}
 					</div>
-				) : selectedFile ? (
+				) : !multiple && activeFiles[0] ? (
 					<div className="flex items-center gap-3 w-full">
 						<div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
 							<FileIcon className="h-5 w-5 text-primary" aria-hidden="true" />
 						</div>
 						<div className="flex-1 min-w-0">
-							<p className="text-sm font-medium truncate">{selectedFile.name}</p>
-							<p className="text-xs text-muted-foreground">{formatSize(selectedFile.size)}</p>
+							<p className="text-sm font-medium truncate">{activeFiles[0].name}</p>
+							<p className="text-xs text-muted-foreground">{formatSize(activeFiles[0].size)}</p>
 						</div>
 						<Button
 							type="button"

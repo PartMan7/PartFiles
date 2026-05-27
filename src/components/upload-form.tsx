@@ -17,9 +17,8 @@ import { UploadQuotaBanner } from '@/components/upload-quota-banner';
 import { ClientDateYmd } from '@/components/client-date-ymd';
 import { cn } from '@/lib/utils';
 import { buildTextUploadFile } from '@/lib/upload-text-file';
+import { useUploadFormDraft } from '@/components/upload-form-draft-context';
 import { X } from 'lucide-react';
-
-type UploadMethod = 'files' | 'rawText';
 
 export type UploadFormProps = {
 	isAdmin: boolean;
@@ -63,18 +62,16 @@ function parseUploadResponse(data: Record<string, unknown>): ResultItem[] {
 
 export function UploadForm({ isAdmin, defaultExpiry = '1', autoCopyRawUrl = false, submitOnPaste = false }: UploadFormProps) {
 	const { setLastRawUrls, setLastUploadedContentUrls } = useLastUpload();
+	const { draft, updateDraft, isShared } = useUploadFormDraft();
+	const { uploadMethod, selectedFiles, rawText, filename } = draft;
 	const [uploading, setUploading] = useState(false);
 	const [error, setError] = useState('');
 	const [results, setResults] = useState<ResultItem[] | null>(null);
 	const [expiry, setExpiry] = useState(defaultExpiry);
-	const [filename, setFilename] = useState('');
 	const [fileResetKey, setFileResetKey] = useState(0);
 	const fileRef = useRef<HTMLInputElement>(null);
 	const [quota, setQuota] = useState<QuotaPayload | null>(null);
 	const [quotaLoadState, setQuotaLoadState] = useState<'loading' | 'ok' | 'error'>('loading');
-	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-	const [uploadMethod, setUploadMethod] = useState<UploadMethod>('files');
-	const [rawText, setRawText] = useState('');
 
 	const loadQuota = useCallback(async () => {
 		setQuotaLoadState('loading');
@@ -101,11 +98,11 @@ export function UploadForm({ isAdmin, defaultExpiry = '1', autoCopyRawUrl = fals
 	useEffect(() => {
 		if (uploadMethod === 'rawText') {
 			setFileResetKey(k => k + 1);
-			setSelectedFiles([]);
-		} else {
-			setRawText('');
+			if (selectedFiles.length > 0) updateDraft({ selectedFiles: [] });
+		} else if (rawText.length > 0) {
+			updateDraft({ rawText: '' });
 		}
-	}, [uploadMethod]);
+	}, [uploadMethod, rawText.length, selectedFiles.length, updateDraft]);
 
 	const filesForQuota = useMemo(() => {
 		if (uploadMethod === 'rawText') {
@@ -207,10 +204,8 @@ export function UploadForm({ isAdmin, defaultExpiry = '1', autoCopyRawUrl = fals
 					toast.success(files.length > 1 ? 'Files uploaded successfully' : 'File uploaded successfully');
 				}
 
-				setFilename('');
+				updateDraft({ filename: '', selectedFiles: [], rawText: '' });
 				setFileResetKey(k => k + 1);
-				setSelectedFiles([]);
-				setRawText('');
 				void loadQuota();
 			}
 		} catch {
@@ -320,7 +315,7 @@ export function UploadForm({ isAdmin, defaultExpiry = '1', autoCopyRawUrl = fals
 								</Label>
 								<RadioGroup
 									value={uploadMethod}
-									onValueChange={v => setUploadMethod(v as UploadMethod)}
+									onValueChange={v => updateDraft({ uploadMethod: v as 'files' | 'rawText' })}
 									className="flex flex-wrap items-center gap-x-4 gap-y-1"
 									aria-labelledby="upload-source-label"
 								>
@@ -346,8 +341,9 @@ export function UploadForm({ isAdmin, defaultExpiry = '1', autoCopyRawUrl = fals
 									name="files"
 									required
 									aria-required="true"
+									files={isShared ? selectedFiles : undefined}
 									onFilesChange={files => {
-										setSelectedFiles(files);
+										updateDraft({ selectedFiles: files });
 										setError('');
 									}}
 									onPastedFiles={submitOnPaste ? submitAfterPaste : undefined}
@@ -361,7 +357,7 @@ export function UploadForm({ isAdmin, defaultExpiry = '1', autoCopyRawUrl = fals
 									aria-labelledby="upload-source-label"
 									value={rawText}
 									onChange={e => {
-										setRawText(e.target.value);
+										updateDraft({ rawText: e.target.value });
 										setError('');
 									}}
 									placeholder="Paste or type text — stored as a .txt file."
@@ -386,7 +382,7 @@ export function UploadForm({ isAdmin, defaultExpiry = '1', autoCopyRawUrl = fals
 								type="text"
 								placeholder="Leave blank to use the default name."
 								value={filename}
-								onChange={e => setFilename(e.target.value)}
+								onChange={e => updateDraft({ filename: e.target.value })}
 								disabled={!singleFileSelection}
 							/>
 							{!singleFileSelection && (

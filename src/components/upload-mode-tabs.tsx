@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UploadForm } from '@/components/upload-form';
 import { AdminUploadForm } from '@/components/admin-upload-form';
+import { UploadFormDraftProvider } from '@/components/upload-form-draft-context';
 import { type UploadMode, persistUploadMode, readStoredUploadMode } from '@/lib/upload-mode-preference';
 
 export type { UploadMode };
@@ -35,7 +36,7 @@ export function UploadModeTabs({ isAdmin, initialMode, tabFromUrl }: UploadModeT
 		}
 	}, [tabFromUrl, initialMode, router]);
 
-	return (
+	const tabs = (
 		<Tabs
 			value={mode}
 			onValueChange={v => {
@@ -66,17 +67,30 @@ export function UploadModeTabs({ isAdmin, initialMode, tabFromUrl }: UploadModeT
 					</TabsTrigger>
 				</TabsList>
 			</div>
-			<TabsContent value="share" className="mt-0">
-				<h1 className="text-3xl font-bold mb-2">Quick Share</h1>
-				<p className="text-muted-foreground text-sm mb-6">
-					Upload with a 1-hour default expiry. Content URLs are copied automatically after upload.
-				</p>
-				<UploadForm isAdmin={isAdmin} defaultExpiry="1" autoCopyRawUrl submitOnPaste />
-			</TabsContent>
-			<TabsContent value="store" className="mt-0">
+			{mode === 'share' ? (
+				<>
+					<h1 className="text-3xl font-bold mb-2">Quick Share</h1>
+					<p className="text-muted-foreground text-sm mb-6">
+						Upload with a 1-hour default expiry. Content URLs are copied automatically after upload.
+					</p>
+				</>
+			) : (
 				<h1 className="text-3xl font-bold mb-6">Upload Content</h1>
-				{isAdmin ? <AdminUploadForm /> : <UploadForm isAdmin={false} />}
-			</TabsContent>
+			)}
+			{isAdmin ? (
+				<>
+					<div hidden={mode !== 'share'}>
+						<UploadForm isAdmin={isAdmin} defaultExpiry="1" autoCopyRawUrl submitOnPaste />
+					</div>
+					<div hidden={mode !== 'store'}>
+						<AdminUploadForm />
+					</div>
+				</>
+			) : (
+				<UploadForm isAdmin={false} defaultExpiry="1" autoCopyRawUrl={mode === 'share'} submitOnPaste={mode === 'share'} />
+			)}
 		</Tabs>
 	);
+
+	return isAdmin ? <UploadFormDraftProvider>{tabs}</UploadFormDraftProvider> : tabs;
 }
