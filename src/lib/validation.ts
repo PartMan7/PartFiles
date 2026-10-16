@@ -341,6 +341,76 @@ export async function checkSlugCollision(slug: string, excludeContentId?: string
 	return { taken: false };
 }
 
+/**
+ * Validate a destination URL for /l/ short links.
+ * Only http/https; blocks embedded credentials and private/reserved hosts (SSRF).
+ */
+export function validateShortLinkUrl(url: string): { valid: boolean; url: string; error?: string } {
+	const trimmed = url.trim();
+	if (!trimmed) {
+		return { valid: false, url: '', error: 'Destination URL cannot be empty' };
+	}
+
+	let parsed: URL;
+	try {
+		parsed = new URL(trimmed);
+	} catch {
+		return { valid: false, url: trimmed, error: 'Invalid URL' };
+	}
+
+	if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+		return { valid: false, url: trimmed, error: 'Only http and https URLs are allowed' };
+	}
+
+	if (parsed.username || parsed.password) {
+		return { valid: false, url: trimmed, error: 'URLs with embedded credentials are not allowed' };
+	}
+
+	if (isPrivateOrReservedHost(parsed.hostname)) {
+		return { valid: false, url: trimmed, error: 'Internal or reserved addresses are not allowed' };
+	}
+
+	return { valid: true, url: parsed.toString() };
+}
+
+function isPrivateOrReservedHost(hostname: string): boolean {
+	const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+
+	if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) {
+		return true;
+	}
+
+	if (host === '0.0.0.0' || host === '::1' || host === '::') {
+		return true;
+	}
+
+	if (host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd')) {
+		return true;
+	}
+
+	const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+	if (ipv4) {
+		const [, a, b] = ipv4.map(Number);
+		if (a === 127 || a === 0 || a === 10) return true;
+		if (a === 172 && b >= 16 && b <= 31) return true;
+		if (a === 192 && b === 168) return true;
+		if (a === 169 && b === 254) return true;
+	}
+
+	return false;
+}
+
+/**
+ * Check that a /l/ slug is not already taken by another short link.
+ */
+export async function checkLinkSlugCollision(slug: string, excludeLinkId?: string): Promise<{ taken: boolean; error?: string }> {
+	const existingLink = await prisma.shortLink.findUnique({ where: { slug } });
+	if (existingLink && existingLink.id !== excludeLinkId) {
+		return { taken: true, error: `Short link slug '${slug}' is already in use` };
+	}
+	return { taken: false };
+}
+
 /** Thrown when an atomic storage check fails inside a transaction. */
 export class StorageLimitError extends Error {
 	constructor(message: string) {

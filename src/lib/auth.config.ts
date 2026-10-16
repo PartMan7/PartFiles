@@ -44,7 +44,7 @@ export const authConfig: NextAuthConfig = {
 				pathname.startsWith('/api/register') ||
 				pathname.startsWith('/api/preview') ||
 				/^(\/api\/content\/[^/]+(\/(raw|report))?)$/.test(pathname) ||
-				/^(\/(c|r|s|e)\/[^/]+)$/.test(pathname) ||
+				/^(\/(c|r|s|e|l)\/[^/]+)$/.test(pathname) ||
 				pathname.startsWith('/api/cron')
 			) {
 				return true;

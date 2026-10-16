@@ -108,6 +108,7 @@ export function Nav({ role, username }: NavProps) {
 			{ href: '/content', label: 'Content', minRole: 'guest', hideForAdmin: true },
 			{ href: '/admin/users', label: 'Users', minRole: 'admin' },
 			{ href: '/admin/content', label: 'Content', minRole: 'admin' },
+			{ href: '/admin/links', label: 'Links', minRole: 'admin' },
 		];
 		return raw.map(link => ({
 			...link,

@@ -67,6 +67,7 @@ export const mockPrisma = {
 	user: createMockModel(),
 	content: createMockModel(),
 	shortSlug: createMockModel(),
+	shortLink: createMockModel(),
 	allowedDirectory: createMockModel(),
 	inviteToken: createMockModel(),
 	guestUpgradeRequest: createMockModel(),
@@ -181,6 +182,9 @@ beforeEach(() => {
 	);
 	mockPrisma.shortSlug.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
 		Promise.resolve({ id: 'new-slug-id', ...data })
+	);
+	mockPrisma.shortLink.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+		Promise.resolve({ id: 'new-link-id', ...data })
 	);
 	mockPrisma.guestUpgradeRequest.findUnique.mockResolvedValue(null);
 	mockPrisma.guestUpgradeRequest.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>

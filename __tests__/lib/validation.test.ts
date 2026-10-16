@@ -5,9 +5,12 @@ import {
 	validateFileSize,
 	validateExpiry,
 	validateShortSlug,
+	validateShortLinkUrl,
+	checkLinkSlugCollision,
 	validatePasswordForStorage,
 	MAX_PASSWORD_LENGTH,
 } from '@/lib/validation';
+import { mockPrisma } from '../setup';
 
 describe('validatePasswordForStorage', () => {
 	it('rejects short passwords', () => {
@@ -237,5 +240,65 @@ describe('validateShortSlug', () => {
 		expect(validateShortSlug('-leading').valid).toBe(false);
 		expect(validateShortSlug('trailing-').valid).toBe(false);
 		expect(validateShortSlug('double--hyphen').valid).toBe(false);
+	});
+});
+
+describe('validateShortLinkUrl', () => {
+	it('accepts valid https URLs', () => {
+		expect(validateShortLinkUrl('https://example.com/path')).toEqual({
+			valid: true,
+			url: 'https://example.com/path',
+		});
+	});
+
+	it('accepts valid http URLs', () => {
+		expect(validateShortLinkUrl('http://example.com')).toEqual({
+			valid: true,
+			url: 'http://example.com/',
+		});
+	});
+
+	it('rejects empty URLs', () => {
+		expect(validateShortLinkUrl('').valid).toBe(false);
+		expect(validateShortLinkUrl('   ').valid).toBe(false);
+	});
+
+	it('rejects non-http(s) schemes', () => {
+		expect(validateShortLinkUrl('javascript:alert(1)').valid).toBe(false);
+		expect(validateShortLinkUrl('data:text/html,hi').valid).toBe(false);
+		expect(validateShortLinkUrl('file:///etc/passwd').valid).toBe(false);
+	});
+
+	it('rejects URLs with embedded credentials', () => {
+		expect(validateShortLinkUrl('https://user:pass@example.com').valid).toBe(false);
+	});
+
+	it('rejects private and reserved hosts', () => {
+		expect(validateShortLinkUrl('http://localhost/admin').valid).toBe(false);
+		expect(validateShortLinkUrl('http://127.0.0.1/').valid).toBe(false);
+		expect(validateShortLinkUrl('http://10.0.0.1/').valid).toBe(false);
+		expect(validateShortLinkUrl('http://192.168.1.1/').valid).toBe(false);
+		expect(validateShortLinkUrl('http://169.254.169.254/').valid).toBe(false);
+		expect(validateShortLinkUrl('http://[::1]/').valid).toBe(false);
+	});
+});
+
+describe('checkLinkSlugCollision', () => {
+	it('reports taken when short link slug exists', async () => {
+		mockPrisma.shortLink.findUnique.mockResolvedValue({ id: 'link-1', slug: 'qr' });
+		const result = await checkLinkSlugCollision('qr');
+		expect(result.taken).toBe(true);
+	});
+
+	it('allows slug when only a file short URL uses it', async () => {
+		mockPrisma.shortLink.findUnique.mockResolvedValue(null);
+		const result = await checkLinkSlugCollision('qr');
+		expect(result.taken).toBe(false);
+	});
+
+	it('allows slug when excluding current link', async () => {
+		mockPrisma.shortLink.findUnique.mockResolvedValue({ id: 'link-1', slug: 'qr' });
+		const result = await checkLinkSlugCollision('qr', 'link-1');
+		expect(result.taken).toBe(false);
 	});
 });

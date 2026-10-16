@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "ShortLink" ADD COLUMN "clickCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "ShortLink" ADD COLUMN "lastClickedAt" DATETIME;
+ALTER TABLE "ShortLink" ADD COLUMN "revokedAt" DATETIME;
