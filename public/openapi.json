@@ -145,6 +145,34 @@
 				}
 			}
 		},
+		"/l/{slug}": {
+			"get": {
+				"tags": ["Public"],
+				"summary": "Redirect via short link",
+				"description": "Redirects to the destination URL for an admin-created short link.",
+				"parameters": [
+					{
+						"name": "slug",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"302": {
+						"description": "Redirect to destination"
+					},
+					"404": {
+						"description": "Link not found"
+					},
+					"410": {
+						"description": "Link has been revoked"
+					}
+				}
+			}
+		},
 		"/preview/{id}": {
 			"get": {
 				"tags": ["Public"],
