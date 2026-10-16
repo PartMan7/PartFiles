@@ -152,7 +152,7 @@ describe('PUT /api/admin/links/[slug]', () => {
 			})
 		);
 		expect(status).toBe(200);
-		expect(body?.link?.destinationUrl).toBe('https://new.com/');
+		expect(body?.link).toMatchObject({ destinationUrl: 'https://new.com/' });
 	});
 
 	it('revokes and reactivates a link', async () => {
@@ -172,7 +172,7 @@ describe('PUT /api/admin/links/[slug]', () => {
 			})
 		);
 		expect(revoke.status).toBe(200);
-		expect(revoke.body?.link?.isRevoked).toBe(true);
+		expect(revoke.body?.link).toMatchObject({ isRevoked: true });
 
 		mockPrisma.shortLink.update.mockResolvedValue({
 			slug: 'qr',
@@ -190,7 +190,7 @@ describe('PUT /api/admin/links/[slug]', () => {
 			})
 		);
 		expect(reactivate.status).toBe(200);
-		expect(reactivate.body?.link?.isRevoked).toBe(false);
+		expect(reactivate.body?.link).toMatchObject({ isRevoked: false });
 	});
 });
 
@@ -211,11 +211,12 @@ describe('GET /api/admin/links', () => {
 		]);
 		const { status, body } = await parseResponse(await GET());
 		expect(status).toBe(200);
-		expect(body?.links).toHaveLength(1);
-		expect(body?.links[0]).toMatchObject({
-			shortUrl: 'http://localhost:3000/l/qr',
-			clickCount: 12,
-			isRevoked: false,
-		});
+		expect(body?.links).toEqual([
+			expect.objectContaining({
+				shortUrl: 'http://localhost:3000/l/qr',
+				clickCount: 12,
+				isRevoked: false,
+			}),
+		]);
 	});
 });

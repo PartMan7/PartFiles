@@ -182,7 +182,7 @@ export function LinkManager() {
 									</TableCell>
 									<TableCell className="text-sm tabular-nums">{link.clickCount}</TableCell>
 									<TableCell className="text-sm text-muted-foreground">
-										{link.lastClickedAt ? <ClientDateYmd date={link.lastClickedAt} /> : '—'}
+										{link.lastClickedAt ? <ClientDateYmd iso={link.lastClickedAt} /> : '—'}
 									</TableCell>
 									<TableCell>
 										{link.isRevoked ? (
