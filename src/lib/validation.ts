@@ -18,11 +18,11 @@ import {
 	maxUploadFileSizeBytesForRole,
 	ALLOWED_EXTENSIONS,
 	BLOCKED_EXTENSIONS,
-	MAX_EXPIRY_HOURS_UPLOADER,
 	MIN_EXPIRY_MINUTES,
 	STORAGE_LIMITS,
+	rolePolicy,
 } from './config';
-import { canSetNoExpiry, isAdmin } from './permissions';
+import { canSetNoExpiry } from './permissions';
 import { prisma } from './prisma';
 
 /**
@@ -238,11 +238,12 @@ export function validateExpiry(
 		};
 	}
 
-	if (!isAdmin(role) && hours > MAX_EXPIRY_HOURS_UPLOADER) {
+	const maxHours = rolePolicy(role)?.maxExpiryHours;
+	if (maxHours != null && hours > maxHours) {
 		return {
 			valid: false,
 			expiresAt: null,
-			error: `Uploaders can set expiry up to ${MAX_EXPIRY_HOURS_UPLOADER} hours (7 days)`,
+			error: `Uploaders can set expiry up to ${maxHours} hours (7 days)`,
 		};
 	}
 

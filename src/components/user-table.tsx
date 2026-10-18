@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RequiredMark } from '@/components/required-mark';
 import { toast } from 'sonner';
 import { ClientDateYmd } from '@/components/client-date-ymd';
+import { roleSelectOptions, type Role } from '@/lib/config';
 
 interface User {
 	id: string;
@@ -166,7 +167,7 @@ export function UserManager({ currentUserId }: UserManagerProps) {
 function CreateUserForm({ onSuccess, refetchUsers }: { onSuccess: () => void; refetchUsers: () => void }) {
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
-	const [role, setRole] = useState('guest');
+	const [role, setRole] = useState<Role>('guest');
 	const [mode, setMode] = useState<'password' | 'invite'>('password');
 	const [inviteUrl, setInviteUrl] = useState('');
 	const [copied, setCopied] = useState(false);
@@ -304,14 +305,16 @@ function CreateUserForm({ onSuccess, refetchUsers }: { onSuccess: () => void; re
 							Role
 							<RequiredMark />
 						</Label>
-						<Select value={role} onValueChange={setRole} required>
+						<Select value={role} onValueChange={v => setRole(v as Role)} required>
 							<SelectTrigger aria-label="Select role" aria-required="true">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="guest">Guest</SelectItem>
-								<SelectItem value="uploader">Uploader</SelectItem>
-								<SelectItem value="admin">Admin</SelectItem>
+								{roleSelectOptions().map(opt => (
+									<SelectItem key={opt.value} value={opt.value}>
+										{opt.label}
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</div>
@@ -328,7 +331,7 @@ function CreateUserForm({ onSuccess, refetchUsers }: { onSuccess: () => void; re
 function EditUserForm({ user, onSuccess }: { user: User; onSuccess: () => void }) {
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
-	const [role, setRole] = useState(user.role);
+	const [role, setRole] = useState<Role>(user.role as Role);
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -394,14 +397,16 @@ function EditUserForm({ user, onSuccess }: { user: User; onSuccess: () => void }
 					Role
 					<RequiredMark />
 				</Label>
-				<Select value={role} onValueChange={setRole} required>
+				<Select value={role} onValueChange={v => setRole(v as Role)} required>
 					<SelectTrigger aria-label="Select role" aria-required="true">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="guest">Guest</SelectItem>
-						<SelectItem value="uploader">Uploader</SelectItem>
-						<SelectItem value="admin">Admin</SelectItem>
+						{roleSelectOptions().map(opt => (
+							<SelectItem key={opt.value} value={opt.value}>
+								{opt.label}
+							</SelectItem>
+						))}
 					</SelectContent>
 				</Select>
 			</div>

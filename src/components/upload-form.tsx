@@ -17,11 +17,12 @@ import { UploadQuotaBanner } from '@/components/upload-quota-banner';
 import { ClientDateYmd } from '@/components/client-date-ymd';
 import { cn } from '@/lib/utils';
 import { buildTextUploadFile } from '@/lib/upload-text-file';
+import { expirySelectOptionsForRole } from '@/lib/config';
 import { useUploadFormDraft } from '@/components/upload-form-draft-context';
 import { X } from 'lucide-react';
 
 export type UploadFormProps = {
-	canSetNoExpiry: boolean;
+	userRole: string;
 	/** Initial value for the expiry select (hours as string, or `off` for roles that can set no expiry) */
 	defaultExpiry?: string;
 	/** Copy raw CDN/API URLs to the clipboard immediately after upload */
@@ -29,18 +30,6 @@ export type UploadFormProps = {
 	/** After pasting file(s) from the clipboard, submit the form automatically */
 	submitOnPaste?: boolean;
 };
-
-const EXPIRY_OPTIONS = [
-	{ value: '0.25', label: '15 minutes' },
-	{ value: '0.5', label: '30 minutes' },
-	{ value: '1', label: '1 hour' },
-	{ value: '6', label: '6 hours' },
-	{ value: '24', label: '1 day' },
-	{ value: '72', label: '3 days' },
-	{ value: '168', label: '7 days' },
-];
-
-const ADMIN_EXPIRY_OPTIONS = [{ value: 'off', label: 'Never (permanent)' }, ...EXPIRY_OPTIONS];
 
 type ResultItem = {
 	id: string;
@@ -60,7 +49,7 @@ function parseUploadResponse(data: Record<string, unknown>): ResultItem[] {
 	return [];
 }
 
-export function UploadForm({ canSetNoExpiry, defaultExpiry = '1', autoCopyRawUrl = false, submitOnPaste = false }: UploadFormProps) {
+export function UploadForm({ userRole, defaultExpiry = '1', autoCopyRawUrl = false, submitOnPaste = false }: UploadFormProps) {
 	const { setLastRawUrls, setLastUploadedContentUrls } = useLastUpload();
 	const { draft, updateDraft, isShared } = useUploadFormDraft();
 	const { uploadMethod, selectedFiles, rawText, filename } = draft;
@@ -225,7 +214,7 @@ export function UploadForm({ canSetNoExpiry, defaultExpiry = '1', autoCopyRawUrl
 		}, 0);
 	}, [submitOnPaste]);
 
-	const expiryOptions = canSetNoExpiry ? ADMIN_EXPIRY_OPTIONS : EXPIRY_OPTIONS;
+	const expiryOptions = expirySelectOptionsForRole(userRole);
 
 	return (
 		<div className="space-y-4">

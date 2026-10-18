@@ -19,17 +19,9 @@ import { cn } from '@/lib/utils';
 import { buildTextUploadFile } from '@/lib/upload-text-file';
 import { useUploadFormDraft } from '@/components/upload-form-draft-context';
 import { X } from 'lucide-react';
+import { expirySelectOptionsForRole } from '@/lib/config';
 
-const EXPIRY_OPTIONS = [
-	{ value: 'off', label: 'Never (permanent)' },
-	{ value: '0.25', label: '15 minutes' },
-	{ value: '0.5', label: '30 minutes' },
-	{ value: '1', label: '1 hour' },
-	{ value: '6', label: '6 hours' },
-	{ value: '24', label: '1 day' },
-	{ value: '72', label: '3 days' },
-	{ value: '168', label: '7 days' },
-];
+const EXPIRY_OPTIONS = expirySelectOptionsForRole('admin');
 
 interface Directory {
 	id: string;

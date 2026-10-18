@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from 'next-auth';
+import { canUpload, isAdmin } from './permissions';
 
 /**
  * Resolve the public-facing origin from headers (X-Forwarded-Host/Proto)
@@ -64,14 +65,14 @@ export const authConfig: NextAuthConfig = {
 
 			// Admin-only routes (list content is GET /api/content, outside /api/admin)
 			if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
-				if (role !== 'admin') {
+				if (!isAdmin(role)) {
 					return Response.redirect(new URL('/dashboard', origin));
 				}
 			}
 
-			// Upload routes: guest (limited), uploader, or admin
+			// Upload routes: roles with canUpload in ROLE_CONFIG
 			if (pathname === '/upload' || pathname === '/clip' || pathname.startsWith('/api/upload')) {
-				if (role !== 'admin' && role !== 'uploader' && role !== 'guest') {
+				if (!canUpload(role)) {
 					return Response.redirect(new URL('/dashboard', origin));
 				}
 			}

@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getContentUrl, getRawFilePublicUrl } from '@/lib/url';
 import { mimeTypeForUploadedFile } from '@/lib/upload-mime';
 import { generateContentId } from '@/lib/id';
-import { ADMIN_MAX_FILE_SIZE } from '@/lib/config';
+import { maxUploadFileSizeBytesForRole } from '@/lib/config';
 
 type AdminContentPayload = {
 	id: string;
@@ -48,7 +48,7 @@ async function processOneAdminUpload(
 	let previewPath: string | null = null;
 
 	try {
-		const sizeResult = validateFileSize(file.size, ADMIN_MAX_FILE_SIZE);
+		const sizeResult = validateFileSize(file.size, maxUploadFileSizeBytesForRole(role));
 		if (!sizeResult.valid) {
 			throw new Error(sizeResult.error || 'Invalid file size');
 		}

@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useAccent } from '@/components/accent-provider';
 import { ACCENTS, ACCENT_DISPLAY_ORDER, type AccentName } from '@/lib/accents';
 import { getBaseUrl } from '@/lib/url';
+import { getRoleLevel } from '@/lib/permissions';
 
 const emptySubscribe = () => () => {};
 
@@ -116,15 +117,9 @@ export function Nav({ role, username }: NavProps) {
 		}));
 	}, [baseUrl]);
 
-	const roleLevel: Record<string, number> = {
-		guest: 0,
-		uploader: 1,
-		admin: 2,
-	};
-
-	const userLevel = role ? (roleLevel[role] ?? 0) : -1;
+	const userLevel = role ? getRoleLevel(role) : -1;
 	const visibleLinks = links.filter(link => {
-		if (userLevel < (roleLevel[link.minRole] ?? 0)) return false;
+		if (userLevel < getRoleLevel(link.minRole)) return false;
 		if (link.hideForAdmin && role === 'admin') return false;
 		return true;
 	});
