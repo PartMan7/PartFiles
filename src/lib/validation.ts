@@ -22,7 +22,7 @@ import {
 	MIN_EXPIRY_MINUTES,
 	STORAGE_LIMITS,
 } from './config';
-import { isAdmin } from './permissions';
+import { canSetNoExpiry, isAdmin } from './permissions';
 import { prisma } from './prisma';
 
 /**
@@ -202,7 +202,7 @@ export async function validateUploadBatchBeforeWrite(
 }
 
 /**
- * Validate expiry time. Returns the computed expiry Date or null (no expiry, admin only).
+ * Validate expiry time. Returns the computed expiry Date or null (no expiry).
  */
 export function validateExpiry(
 	role: string,
@@ -210,11 +210,11 @@ export function validateExpiry(
 ): { valid: boolean; expiresAt: Date | null; error?: string } {
 	// "off" means no expiry
 	if (expiryOption === 'off' || expiryOption === null) {
-		if (!isAdmin(role)) {
+		if (!canSetNoExpiry(role)) {
 			return {
 				valid: false,
 				expiresAt: null,
-				error: 'Only admins can set content to never expire',
+				error: 'Only admins and uploaders can set content to never expire',
 			};
 		}
 		return { valid: true, expiresAt: null };

@@ -35,11 +35,10 @@ export function isAdmin(role: string): boolean {
 }
 
 /**
- * Check if an expiry value is valid for the given role.
- * Uploaders MUST have an expiry. Admins can have no expiry.
+ * Check if a role can set content to never expire.
  */
 export function canSetNoExpiry(role: string): boolean {
-	return isAdmin(role);
+	return role === 'uploader' || isAdmin(role);
 }
 
 /**

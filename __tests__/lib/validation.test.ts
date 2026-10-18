@@ -158,15 +158,16 @@ describe('validateExpiry', () => {
 		expect(res.expiresAt).toBeNull();
 	});
 
-	it('uploader CANNOT set expiry to off', () => {
+	it('uploader can set expiry to off', () => {
 		const res = validateExpiry('uploader', 'off');
-		expect(res.valid).toBe(false);
-		expect(res.error).toContain('Only admins');
+		expect(res.valid).toBe(true);
+		expect(res.expiresAt).toBeNull();
 	});
 
-	it('uploader CANNOT set expiry to null', () => {
+	it('uploader can set expiry to null', () => {
 		const res = validateExpiry('uploader', null);
-		expect(res.valid).toBe(false);
+		expect(res.valid).toBe(true);
+		expect(res.expiresAt).toBeNull();
 	});
 
 	it('valid hour value returns future date', () => {

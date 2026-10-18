@@ -108,11 +108,19 @@ describe('POST /api/upload', () => {
 			mockPrisma.content.aggregate.mockResolvedValue({ _sum: { fileSize: 0 }, _count: 0 });
 		});
 
-		it('uploader cannot set expiry to off', async () => {
+		it('uploader can set expiry to off', async () => {
+			const req = uploadRequest('/api/upload', { expiry: 'off' }, validFile);
+			const { status, body } = await parseResponse(await POST(req));
+			expect(status).toBe(200);
+			expect(body?.success).toBe(true);
+		});
+
+		it('guest cannot set expiry to off', async () => {
+			mockGuest();
 			const req = uploadRequest('/api/upload', { expiry: 'off' }, validFile);
 			const { status, body } = await parseResponse(await POST(req));
 			expect(status).toBe(400);
-			expect(body?.error).toContain('Only admins');
+			expect(body?.error).toContain('Only admins and uploaders');
 		});
 
 		it('uploader cannot exceed 7-day expiry', async () => {

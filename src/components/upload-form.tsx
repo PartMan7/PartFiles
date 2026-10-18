@@ -21,8 +21,8 @@ import { useUploadFormDraft } from '@/components/upload-form-draft-context';
 import { X } from 'lucide-react';
 
 export type UploadFormProps = {
-	isAdmin: boolean;
-	/** Initial value for the expiry select (hours as string, or `off` for admins) */
+	canSetNoExpiry: boolean;
+	/** Initial value for the expiry select (hours as string, or `off` for roles that can set no expiry) */
 	defaultExpiry?: string;
 	/** Copy raw CDN/API URLs to the clipboard immediately after upload */
 	autoCopyRawUrl?: boolean;
@@ -60,7 +60,7 @@ function parseUploadResponse(data: Record<string, unknown>): ResultItem[] {
 	return [];
 }
 
-export function UploadForm({ isAdmin, defaultExpiry = '1', autoCopyRawUrl = false, submitOnPaste = false }: UploadFormProps) {
+export function UploadForm({ canSetNoExpiry, defaultExpiry = '1', autoCopyRawUrl = false, submitOnPaste = false }: UploadFormProps) {
 	const { setLastRawUrls, setLastUploadedContentUrls } = useLastUpload();
 	const { draft, updateDraft, isShared } = useUploadFormDraft();
 	const { uploadMethod, selectedFiles, rawText, filename } = draft;
@@ -225,7 +225,7 @@ export function UploadForm({ isAdmin, defaultExpiry = '1', autoCopyRawUrl = fals
 		}, 0);
 	}, [submitOnPaste]);
 
-	const expiryOptions = isAdmin ? ADMIN_EXPIRY_OPTIONS : EXPIRY_OPTIONS;
+	const expiryOptions = canSetNoExpiry ? ADMIN_EXPIRY_OPTIONS : EXPIRY_OPTIONS;
 
 	return (
 		<div className="space-y-4">

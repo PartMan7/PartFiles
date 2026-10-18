@@ -49,7 +49,8 @@ describe('permissions', () => {
 
 	describe('canSetNoExpiry', () => {
 		it('admin can set no expiry', () => expect(canSetNoExpiry('admin')).toBe(true));
-		it('uploader cannot set no expiry', () => expect(canSetNoExpiry('uploader')).toBe(false));
+		it('uploader can set no expiry', () => expect(canSetNoExpiry('uploader')).toBe(true));
+		it('guest cannot set no expiry', () => expect(canSetNoExpiry('guest')).toBe(false));
 	});
 
 	describe('canBrowseContent', () => {

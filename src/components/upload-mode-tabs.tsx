@@ -12,12 +12,13 @@ export type { UploadMode };
 
 type UploadModeTabsProps = {
 	isAdmin: boolean;
+	canSetNoExpiry: boolean;
 	initialMode: UploadMode;
 	/** True when the URL explicitly requests Quick Share (`?tab=share`). Overrides localStorage. */
 	tabFromUrl: boolean;
 };
 
-export function UploadModeTabs({ isAdmin, initialMode, tabFromUrl }: UploadModeTabsProps) {
+export function UploadModeTabs({ isAdmin, canSetNoExpiry, initialMode, tabFromUrl }: UploadModeTabsProps) {
 	const router = useRouter();
 	const [mode, setMode] = useState<UploadMode>(initialMode);
 
@@ -80,14 +81,19 @@ export function UploadModeTabs({ isAdmin, initialMode, tabFromUrl }: UploadModeT
 			{isAdmin ? (
 				<>
 					<div hidden={mode !== 'share'}>
-						<UploadForm isAdmin={isAdmin} defaultExpiry="1" autoCopyRawUrl submitOnPaste />
+						<UploadForm canSetNoExpiry={canSetNoExpiry} defaultExpiry="1" autoCopyRawUrl submitOnPaste />
 					</div>
 					<div hidden={mode !== 'store'}>
 						<AdminUploadForm />
 					</div>
 				</>
 			) : (
-				<UploadForm isAdmin={false} defaultExpiry="1" autoCopyRawUrl={mode === 'share'} submitOnPaste={mode === 'share'} />
+				<UploadForm
+					canSetNoExpiry={canSetNoExpiry}
+					defaultExpiry="1"
+					autoCopyRawUrl={mode === 'share'}
+					submitOnPaste={mode === 'share'}
+				/>
 			)}
 		</Tabs>
 	);
