@@ -17,7 +17,7 @@ import { UploadQuotaBanner } from '@/components/upload-quota-banner';
 import { ClientDateYmd } from '@/components/client-date-ymd';
 import { cn } from '@/lib/utils';
 import { buildTextUploadFile } from '@/lib/upload-text-file';
-import { expirySelectOptionsForRole } from '@/lib/config';
+import { DEFAULT_EXPIRY_HOURS, expirySelectOptionsForRole } from '@/lib/config';
 import { useUploadFormDraft } from '@/components/upload-form-draft-context';
 import { X } from 'lucide-react';
 
@@ -49,7 +49,12 @@ function parseUploadResponse(data: Record<string, unknown>): ResultItem[] {
 	return [];
 }
 
-export function UploadForm({ userRole, defaultExpiry = '1', autoCopyRawUrl = false, submitOnPaste = false }: UploadFormProps) {
+export function UploadForm({
+	userRole,
+	defaultExpiry = String(DEFAULT_EXPIRY_HOURS),
+	autoCopyRawUrl = false,
+	submitOnPaste = false,
+}: UploadFormProps) {
 	const { setLastRawUrls, setLastUploadedContentUrls } = useLastUpload();
 	const { draft, updateDraft, isShared } = useUploadFormDraft();
 	const { uploadMethod, selectedFiles, rawText, filename } = draft;

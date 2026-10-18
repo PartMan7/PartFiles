@@ -130,11 +130,11 @@ describe('POST /api/upload', () => {
 			expect(body?.error).toContain('7 days');
 		});
 
-		it('defaults to 1h expiry when not specified', async () => {
+		it('defaults to 1-day expiry when not specified', async () => {
 			const req = uploadRequest('/api/upload', {}, validFile);
 			const { status } = await parseResponse(await POST(req));
 			expect(status).toBe(200);
-			// The content should have been created with an expiresAt ~1h in the future
+			// The content should have been created with an expiresAt ~24h in the future
 			expect(mockPrisma.content.create).toHaveBeenCalledTimes(1);
 			const callData = mockPrisma.content.create.mock.calls[0][0].data;
 			expect(callData.expiresAt).toBeInstanceOf(Date);

@@ -7,6 +7,7 @@ import { UploadForm } from '@/components/upload-form';
 import { AdminUploadForm } from '@/components/admin-upload-form';
 import { UploadFormDraftProvider } from '@/components/upload-form-draft-context';
 import { type UploadMode, persistUploadMode, readStoredUploadMode } from '@/lib/upload-mode-preference';
+import { DEFAULT_EXPIRY_HOURS } from '@/lib/config';
 
 export type { UploadMode };
 
@@ -72,7 +73,7 @@ export function UploadModeTabs({ isAdmin, userRole, initialMode, tabFromUrl }: U
 				<>
 					<h1 className="text-3xl font-bold mb-2">Quick Share</h1>
 					<p className="text-muted-foreground text-sm mb-6">
-						Upload with a 1-hour default expiry. Content URLs are copied automatically after upload.
+						Upload with a 1-day default expiry. Content URLs are copied automatically after upload.
 					</p>
 				</>
 			) : (
@@ -81,14 +82,19 @@ export function UploadModeTabs({ isAdmin, userRole, initialMode, tabFromUrl }: U
 			{isAdmin ? (
 				<>
 					<div hidden={mode !== 'share'}>
-						<UploadForm userRole={userRole} defaultExpiry="1" autoCopyRawUrl submitOnPaste />
+						<UploadForm userRole={userRole} defaultExpiry={String(DEFAULT_EXPIRY_HOURS)} autoCopyRawUrl submitOnPaste />
 					</div>
 					<div hidden={mode !== 'store'}>
 						<AdminUploadForm />
 					</div>
 				</>
 			) : (
-				<UploadForm userRole={userRole} defaultExpiry="1" autoCopyRawUrl={mode === 'share'} submitOnPaste={mode === 'share'} />
+				<UploadForm
+					userRole={userRole}
+					defaultExpiry={String(DEFAULT_EXPIRY_HOURS)}
+					autoCopyRawUrl={mode === 'share'}
+					submitOnPaste={mode === 'share'}
+				/>
 			)}
 		</Tabs>
 	);

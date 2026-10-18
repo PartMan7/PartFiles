@@ -91,7 +91,7 @@ export function maxUploadFileSizeBytesForRole(role: string): number {
 
 // --- Expiry constraints ---
 export const MAX_EXPIRY_HOURS_UPLOADER = ROLE_CONFIG.uploader.maxExpiryHours ?? 168;
-export const DEFAULT_EXPIRY_HOURS = 1;
+export const DEFAULT_EXPIRY_HOURS = 24;
 export const MIN_EXPIRY_MINUTES = 5;
 
 export const EXPIRY_SELECT_OPTIONS: { value: string; label: string }[] = [
