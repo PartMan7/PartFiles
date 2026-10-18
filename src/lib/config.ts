@@ -14,11 +14,12 @@ export const STORAGE_LIMITS: Record<string, number> = {
 };
 
 // --- Per-file size limit ---
-export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB per file (admin / uploader)
+export const ADMIN_MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 GB per file for admins
+export const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB per file for uploaders
 export const GUEST_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB per file for guests
 
 export function maxUploadFileSizeBytesForRole(role: string): number {
-	return role === 'guest' ? GUEST_MAX_FILE_SIZE_BYTES : MAX_FILE_SIZE;
+	return role === 'admin' ? ADMIN_MAX_FILE_SIZE : role === 'guest' ? GUEST_MAX_FILE_SIZE_BYTES : MAX_FILE_SIZE;
 }
 
 // --- Expiry constraints ---
