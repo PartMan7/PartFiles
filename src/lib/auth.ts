@@ -3,6 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { compareSync } from 'bcryptjs';
 import { prisma } from './prisma';
 import { authConfig } from './auth.config';
+import { isKnownRole } from './config';
 
 /** How often (ms) the JWT callback re-checks the DB to confirm the user still exists. */
 const REVALIDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -80,7 +81,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 			// Initial sign-in: populate custom claims from the authorize result
 			if (user) {
 				token.id = user.id;
-				token.role = (user as { role: string }).role;
+				token.role = user.role ?? 'guest';
 				token.revalidatedAt = Date.now();
 				return token;
 			}
@@ -102,7 +103,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 				}
 
 				// Refresh role in case an admin changed it
-				token.role = dbUser.role;
+				token.role = isKnownRole(dbUser.role) ? dbUser.role : 'guest';
 				token.revalidatedAt = Date.now();
 			}
 
@@ -150,7 +151,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 				return {
 					id: user.id,
 					name: user.username,
-					role: user.role,
+					role: isKnownRole(user.role) ? user.role : 'guest',
 				};
 			},
 		}),

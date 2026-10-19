@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from 'next-auth';
+import { isKnownRole, type Role } from './config';
 import { canUpload, isAdmin } from './permissions';
 
 /**
@@ -19,14 +20,15 @@ export const authConfig: NextAuthConfig = {
 		async jwt({ token, user }) {
 			if (user) {
 				token.id = user.id;
-				token.role = (user as { role: string }).role;
+				token.role = user.role ?? 'guest';
 			}
 			return token;
 		},
 		async session({ session, token }) {
 			if (session.user) {
 				session.user.id = token.id as string;
-				session.user.role = token.role as string;
+				const role = token.role;
+				session.user.role = isKnownRole(String(role)) ? (role as Role) : 'guest';
 			}
 			return session;
 		},

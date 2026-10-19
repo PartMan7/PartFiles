@@ -68,13 +68,11 @@ function visibleRawTextInput() {
 	return visible as HTMLTextAreaElement;
 }
 
-function renderTabs(
-	props: { isAdmin?: boolean; canSetNoExpiry?: boolean; initialMode?: 'share' | 'store'; tabFromUrl?: boolean } = {}
-) {
-	const { isAdmin = false, canSetNoExpiry = false, initialMode = 'share', tabFromUrl = true } = props;
+function renderTabs(props: { isAdmin?: boolean; userRole?: string; initialMode?: 'share' | 'store'; tabFromUrl?: boolean } = {}) {
+	const { isAdmin = false, userRole = 'guest', initialMode = 'share', tabFromUrl = true } = props;
 	return render(
 		<LastUploadProvider>
-			<UploadModeTabs isAdmin={isAdmin} canSetNoExpiry={canSetNoExpiry} initialMode={initialMode} tabFromUrl={tabFromUrl} />
+			<UploadModeTabs isAdmin={isAdmin} userRole={userRole} initialMode={initialMode} tabFromUrl={tabFromUrl} />
 		</LastUploadProvider>
 	);
 }
