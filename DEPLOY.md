@@ -45,16 +45,12 @@ Open `.env` in your editor and set every variable:
 
 ### 3. Run database migrations
 
-Install the Prisma CLI once (it is not included in the standalone build):
+The deploy branch ships a pinned Prisma CLI in `tools/`. Apply all pending
+migrations:
 
 ```bash
-npm install -g prisma
-```
-
-Then apply all pending migrations:
-
-```bash
-prisma migrate deploy --config=prisma.config.ts
+set -a; . ./.env; set +a
+./tools/node_modules/.bin/prisma migrate deploy --config=prisma.config.ts
 ```
 
 ### 4. (Optional) Seed the database
@@ -131,7 +127,7 @@ git fetch origin deploy
 git reset --hard origin/deploy
 
 # Apply any new migrations
-prisma migrate deploy --config=prisma.config.ts 2>&1 || true
+./tools/node_modules/.bin/prisma migrate deploy --config=prisma.config.ts
 
 # Restart the service
 pm2 restart partfiles
@@ -168,5 +164,6 @@ handles this (`prisma migrate deploy`). If you prefer manual control,
 SSH into the server and run:
 
 ```bash
-cd /opt/partfiles && prisma migrate deploy --config=prisma.config.ts
+cd /opt/partfiles && set -a && . ./.env && set +a
+./tools/node_modules/.bin/prisma migrate deploy --config=prisma.config.ts
 ```

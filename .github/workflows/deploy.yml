@@ -88,14 +88,19 @@ jobs:
             cp -r node_modules/dotenv _deploy/node_modules/dotenv
           fi
 
-          # Standalone prisma config (no dotenv — env vars come from the OS)
+          # Pinned Prisma CLI (same version as the lockfile) for `migrate deploy`
+          PRISMA_VERSION=$(node -p "require('./node_modules/prisma/package.json').version")
+          mkdir -p _deploy/tools
+          (cd _deploy/tools && npm init -y >/dev/null && npm install --save-exact --no-audit --no-fund "prisma@$PRISMA_VERSION")
+
+          # Standalone prisma config (no imports, so it resolves without a local prisma package;
+          # env vars come from the OS)
           cat > _deploy/prisma.config.ts <<'PCONF'
-          import { defineConfig } from 'prisma/config';
-          export default defineConfig({
+          export default {
             schema: 'prisma/schema.prisma',
             migrations: { path: 'prisma/migrations' },
             datasource: { url: process.env.DATABASE_URL || 'file:./data/partfiles.db' },
-          });
+          };
           PCONF
 
           # PM2 ecosystem config (node_args loads .env from cwd before server starts)
