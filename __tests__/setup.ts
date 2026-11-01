@@ -71,6 +71,7 @@ export const mockPrisma = {
 	allowedDirectory: createMockModel(),
 	inviteToken: createMockModel(),
 	guestUpgradeRequest: createMockModel(),
+	apiToken: createMockModel(),
 	discordWebhookHourQuota: {
 		updateMany: vi.fn().mockResolvedValue({ count: 1 }),
 		findUnique: vi.fn().mockResolvedValue(null),
@@ -185,6 +186,9 @@ beforeEach(() => {
 	);
 	mockPrisma.shortLink.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
 		Promise.resolve({ id: 'new-link-id', ...data })
+	);
+	mockPrisma.apiToken.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+		Promise.resolve({ id: 'new-token-id', ...data })
 	);
 	mockPrisma.guestUpgradeRequest.findUnique.mockResolvedValue(null);
 	mockPrisma.guestUpgradeRequest.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>

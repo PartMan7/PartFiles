@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { authenticate } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
 import { isAdmin } from '@/lib/permissions';
 import type { Prisma } from '@prisma/client';
@@ -10,7 +10,7 @@ const MAX_UPLOADER_TAGS = 20;
 const MAX_UPLOADER_TAG_LEN = 50;
 
 export async function GET(request: NextRequest) {
-	const session = await auth();
+	const session = await authenticate(request, 'me');
 	if (!session?.user) {
 		return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 	}

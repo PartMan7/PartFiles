@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
-import { auth } from '@/lib/auth';
+import { authenticate } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
 import { isAdmin } from '@/lib/permissions';
 import { hashSync } from 'bcryptjs';
@@ -18,8 +18,8 @@ const INVITE_EXPIRY_HOURS = 48;
  */
 const INVITE_PLACEHOLDER_HASH = '!INVITE_PENDING';
 
-export async function GET() {
-	const session = await auth();
+export async function GET(req: NextRequest) {
+	const session = await authenticate(req, 'user');
 	if (!session?.user || !isAdmin(session.user.role)) {
 		return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 	}
@@ -40,7 +40,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-	const session = await auth();
+	const session = await authenticate(req, 'user');
 	if (!session?.user || !isAdmin(session.user.role)) {
 		return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 	}

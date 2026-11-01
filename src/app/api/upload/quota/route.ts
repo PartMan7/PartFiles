@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { authenticate } from '@/lib/api-auth';
 import { canUpload } from '@/lib/permissions';
 import { prisma } from '@/lib/prisma';
 import { STORAGE_LIMITS, maxUploadFileSizeBytesForRole } from '@/lib/config';
@@ -8,8 +8,8 @@ import { STORAGE_LIMITS, maxUploadFileSizeBytesForRole } from '@/lib/config';
  * Current user's storage quota for client-side validation before upload.
  * Server-side checks remain authoritative (including per-file transactions).
  */
-export async function GET() {
-	const session = await auth();
+export async function GET(req: NextRequest) {
+	const session = await authenticate(req, 'me');
 	if (!session?.user) {
 		return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 	}

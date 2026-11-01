@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { authenticate } from '@/lib/api-auth';
 import { canUpload } from '@/lib/permissions';
 import {
 	sanitizeFilename,
@@ -115,7 +115,7 @@ async function processOneUpload(
 }
 
 export async function POST(req: NextRequest) {
-	const session = await auth();
+	const session = await authenticate(req, 'upload');
 	if (!session?.user) {
 		return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 	}

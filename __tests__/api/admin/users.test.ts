@@ -8,13 +8,13 @@ import { NextRequest } from 'next/server';
 describe('GET /api/admin/users', () => {
 	it('returns 403 for non-admin', async () => {
 		mockUploader();
-		const { status } = await parseResponse(await GET());
+		const { status } = await parseResponse(await GET(new NextRequest('http://localhost/api/admin/users')));
 		expect(status).toBe(403);
 	});
 
 	it('returns 403 for unauthenticated', async () => {
 		mockUnauthenticated();
-		const { status } = await parseResponse(await GET());
+		const { status } = await parseResponse(await GET(new NextRequest('http://localhost/api/admin/users')));
 		expect(status).toBe(403);
 	});
 
@@ -26,7 +26,7 @@ describe('GET /api/admin/users', () => {
 		];
 		mockPrisma.user.findMany.mockResolvedValue(mockUsers);
 
-		const { status, body } = await parseResponse(await GET());
+		const { status, body } = await parseResponse(await GET(new NextRequest('http://localhost/api/admin/users')));
 		expect(status).toBe(200);
 		expect(body?.users).toHaveLength(2);
 	});

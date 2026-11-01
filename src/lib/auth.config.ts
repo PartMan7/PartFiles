@@ -53,6 +53,15 @@ export const authConfig: NextAuthConfig = {
 				return true;
 			}
 
+			// Bearer requests are validated (token, scope, role) inside each route. Token management stays session-only.
+			if (
+				pathname.startsWith('/api/') &&
+				!pathname.startsWith('/api/tokens') &&
+				/^Bearer /i.test(headers.get('authorization') ?? '')
+			) {
+				return true;
+			}
+
 			const origin = getRequestOrigin(nextUrl, headers);
 
 			if (!isLoggedIn) {

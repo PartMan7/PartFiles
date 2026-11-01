@@ -2,7 +2,7 @@
 	"openapi": "3.0.0",
 	"info": {
 		"title": "PartFiles API",
-		"description": "API documentation for PartFiles - a minimalist file management and sharing platform.",
+		"description": "API documentation for PartFiles - a minimalist file management and sharing platform.\n\n## Bearer tokens\nSend `Authorization: Bearer partf_...`. Scopes: `me` (read own content/quota), `upload` (POST /upload), `user` (admin user management; admin-only). Create tokens at `/tokens`, or link a user to `/generate-token?scopes=me,upload&callback-url=https://example.com/cb&name=My+agent&expires=30` (`expires` = 1|7|30|90|365|never). The user must confirm; the token is delivered in the callback URL fragment (`#token=...`). Token management endpoints are session-only.",
 		"version": "1.0.0"
 	},
 	"servers": [
@@ -23,6 +23,10 @@
 		{
 			"name": "Admin",
 			"description": "Endpoints requiring Admin role"
+		},
+		{
+			"name": "Tokens",
+			"description": "Session-only token management (Uploader or Admin)"
 		}
 	],
 	"paths": {
@@ -210,7 +214,7 @@
 			"post": {
 				"tags": ["Uploader"],
 				"summary": "Upload a file",
-				"description": "Upload a new file. **Requires Uploader or Admin role.**",
+				"description": "Upload a new file. **Requires Uploader or Admin role.** Bearer scope: `upload`.",
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -247,7 +251,12 @@
 					"403": {
 						"description": "Forbidden"
 					}
-				}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				]
 			}
 		},
 		"/admin/upload": {
@@ -285,17 +294,22 @@
 			"get": {
 				"tags": ["Admin"],
 				"summary": "List all users",
-				"description": "Returns a list of all users in the system. **Requires Admin role.**",
+				"description": "Returns a list of all users in the system. **Requires Admin role.** Bearer scope: `user`.",
 				"responses": {
 					"200": {
 						"description": "List of users"
 					}
-				}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				]
 			},
 			"post": {
 				"tags": ["Admin"],
 				"summary": "Create a new user or invite",
-				"description": "Creates a new user directly or generates an invite link. **Requires Admin role.**",
+				"description": "Creates a new user directly or generates an invite link. **Requires Admin role.** Bearer scope: `user`.",
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -325,7 +339,12 @@
 					"201": {
 						"description": "User created"
 					}
-				}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				]
 			}
 		},
 		"/admin/users/{id}": {
@@ -408,7 +427,7 @@
 			"get": {
 				"tags": ["Admin", "Uploader"],
 				"summary": "List content",
-				"description": "Lists content. Admins may see all items (optional filters). Other roles must pass `uploadedBy` query params scoped to their username; the server enforces access.",
+				"description": "Lists content. Admins may see all items (optional filters). Other roles must pass `uploadedBy` query params scoped to their username; the server enforces access. Bearer scope: `me`.",
 				"parameters": [
 					{
 						"name": "expired",
@@ -437,7 +456,12 @@
 					"401": {
 						"description": "Not authenticated"
 					}
-				}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				]
 			}
 		},
 		"/admin/content/{id}": {
@@ -539,6 +563,156 @@
 						"description": "List of directories"
 					}
 				}
+			}
+		},
+		"/tokens": {
+			"get": {
+				"tags": ["Tokens"],
+				"summary": "List your tokens (never includes secrets)",
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tokens": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"name": {
+														"type": "string"
+													},
+													"prefix": {
+														"type": "string"
+													},
+													"scopes": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"enum": ["me", "upload", "user"]
+														}
+													},
+													"expiresAt": {
+														"type": "string",
+														"format": "date-time",
+														"nullable": true
+													},
+													"lastUsedAt": {
+														"type": "string",
+														"format": "date-time",
+														"nullable": true
+													},
+													"revokedAt": {
+														"type": "string",
+														"format": "date-time",
+														"nullable": true
+													},
+													"createdAt": {
+														"type": "string",
+														"format": "date-time"
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Guest"
+					}
+				}
+			},
+			"post": {
+				"tags": ["Tokens"],
+				"summary": "Create a token; the secret is returned once",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"required": ["name", "scopes", "expiresInDays"],
+								"properties": {
+									"name": {
+										"type": "string",
+										"maxLength": 60
+									},
+									"scopes": {
+										"type": "array",
+										"items": {
+											"type": "string",
+											"enum": ["me", "upload", "user"]
+										}
+									},
+									"expiresInDays": {
+										"type": "integer",
+										"nullable": true,
+										"enum": [1, 7, 30, 90, 365, null],
+										"description": "null = permanent until revoked"
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Created; contains `token` (shown once) and `info`"
+					},
+					"400": {
+						"description": "Invalid input"
+					},
+					"403": {
+						"description": "Guest, or scope not grantable"
+					},
+					"409": {
+						"description": "Active token limit"
+					},
+					"429": {
+						"description": "Rate limited"
+					}
+				}
+			}
+		},
+		"/tokens/{id}": {
+			"delete": {
+				"tags": ["Tokens"],
+				"summary": "Revoke a token (immediate)",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Revoked"
+					},
+					"404": {
+						"description": "Not found"
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"securitySchemes": {
+			"bearerAuth": {
+				"type": "http",
+				"scheme": "bearer",
+				"description": "Token from /tokens; scope required per endpoint."
 			}
 		}
 	}

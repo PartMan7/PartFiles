@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { POST } from '@/app/api/upload/route';
 import { GET as GET_UPLOAD_QUOTA } from '@/app/api/upload/quota/route';
@@ -296,7 +297,7 @@ describe('POST /api/upload', () => {
 describe('GET /api/upload/quota', () => {
 	it('returns 401 when unauthenticated', async () => {
 		mockUnauthenticated();
-		const res = await GET_UPLOAD_QUOTA();
+		const res = await GET_UPLOAD_QUOTA(new NextRequest('http://localhost/api/upload/quota'));
 		expect(res.status).toBe(401);
 	});
 
@@ -306,7 +307,7 @@ describe('GET /api/upload/quota', () => {
 			_sum: { fileSize: 2 * 1024 * 1024 },
 			_count: 2,
 		});
-		const res = await GET_UPLOAD_QUOTA();
+		const res = await GET_UPLOAD_QUOTA(new NextRequest('http://localhost/api/upload/quota'));
 		const body = (await res.json()) as Record<string, unknown>;
 		expect(res.status).toBe(200);
 		expect(body.usedBytes).toBe(2 * 1024 * 1024);
@@ -321,7 +322,7 @@ describe('GET /api/upload/quota', () => {
 			_sum: { fileSize: 10 * 1024 * 1024 },
 			_count: 3,
 		});
-		const res = await GET_UPLOAD_QUOTA();
+		const res = await GET_UPLOAD_QUOTA(new NextRequest('http://localhost/api/upload/quota'));
 		const body = (await res.json()) as Record<string, unknown>;
 		expect(res.status).toBe(200);
 		expect(body.usedBytes).toBe(10 * 1024 * 1024);

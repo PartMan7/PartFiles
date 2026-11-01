@@ -18,6 +18,23 @@ model User {
   inviteTokens   InviteToken[]
   upgradeRequest GuestUpgradeRequest?
   shortLinks     ShortLink[]
+  apiTokens      ApiToken[]
+}
+
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  prefix     String
+  tokenHash  String    @unique
+  scopes     String // comma-separated: "me" | "upload" | "user"
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model GuestUpgradeRequest {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { authenticate } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
 import { isAdmin } from '@/lib/permissions';
 import { hashSync } from 'bcryptjs';
@@ -7,8 +7,8 @@ import { ROLES } from '@/lib/config';
 import { validateUsername } from '@/lib/username';
 import { validatePasswordForStorage } from '@/lib/validation';
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-	const session = await auth();
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+	const session = await authenticate(req, 'user');
 	if (!session?.user || !isAdmin(session.user.role)) {
 		return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 	}
@@ -35,7 +35,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-	const session = await auth();
+	const session = await authenticate(req, 'user');
 	if (!session?.user || !isAdmin(session.user.role)) {
 		return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 	}
@@ -101,8 +101,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 	}
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-	const session = await auth();
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+	const session = await authenticate(req, 'user');
 	if (!session?.user || !isAdmin(session.user.role)) {
 		return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 	}

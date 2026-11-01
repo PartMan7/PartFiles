@@ -8,6 +8,7 @@ import { STORAGE_LIMITS } from '@/lib/config';
 import { canUpload, isAdmin, isGuestRole, canBrowseContent } from '@/lib/permissions';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { canManageTokens } from '@/lib/token-scopes';
 import { GuestUpgradeCta } from '@/components/guest-upgrade-cta';
 
 export default async function DashboardPage() {
@@ -124,6 +125,13 @@ export default async function DashboardPage() {
 									<Link href="/content">
 										<Button className="w-full" variant="outline">
 											Content
+										</Button>
+									</Link>
+								)}
+								{canManageTokens(role) && (
+									<Link href="/tokens">
+										<Button className="w-full" variant="outline">
+											API Tokens
 										</Button>
 									</Link>
 								)}

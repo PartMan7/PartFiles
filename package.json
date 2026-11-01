@@ -8,6 +8,7 @@
 		"start": "next start",
 		"lint": "eslint",
 		"typecheck": "tsc --noEmit",
+		"migrate": "prisma migrate deploy",
 		"seed": "npx tsx prisma/seed.mts",
 		"test": "vitest run",
 		"test:watch": "vitest",

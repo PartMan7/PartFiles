@@ -27,6 +27,10 @@ const nextConfig: NextConfig = {
 				value: 'nosniff',
 			},
 		] as const;
+		const tokenPageHeaders = [
+			{ key: 'Referrer-Policy', value: 'no-referrer' },
+			{ key: 'Cache-Control', value: 'no-store' },
+		];
 		return [
 			{
 				source: '/:path*',
@@ -36,6 +40,22 @@ const nextConfig: NextConfig = {
 				// Raw + embed URLs must be frameable cross-origin (iframes / external embeds).
 				source: '/((?!r/|e/).*)',
 				headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
+			},
+			{
+				source: '/tokens',
+				headers: tokenPageHeaders,
+			},
+			{
+				source: '/generate-token',
+				headers: tokenPageHeaders,
+			},
+			{
+				source: '/api/tokens/:path*',
+				headers: tokenPageHeaders,
+			},
+			{
+				source: '/api/tokens',
+				headers: tokenPageHeaders,
 			},
 		];
 	},
