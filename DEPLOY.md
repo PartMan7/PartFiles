@@ -49,8 +49,7 @@ The deploy branch ships a pinned Prisma CLI in `tools/`. Apply all pending
 migrations:
 
 ```bash
-set -a; . ./.env; set +a
-./tools/node_modules/.bin/prisma migrate deploy --config=prisma.config.ts
+npm run migrate
 ```
 
 ### 4. (Optional) Seed the database
@@ -127,7 +126,7 @@ git fetch origin deploy
 git reset --hard origin/deploy
 
 # Apply any new migrations
-./tools/node_modules/.bin/prisma migrate deploy --config=prisma.config.ts
+npm run migrate
 
 # Restart the service
 pm2 restart partfiles
@@ -164,6 +163,5 @@ handles this (`prisma migrate deploy`). If you prefer manual control,
 SSH into the server and run:
 
 ```bash
-cd /opt/partfiles && set -a && . ./.env && set +a
-./tools/node_modules/.bin/prisma migrate deploy --config=prisma.config.ts
+cd /opt/partfiles && npm run migrate
 ```
