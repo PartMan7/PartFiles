@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AccentProvider } from '@/components/accent-provider';
 import { AuthProvider } from '@/components/auth-provider';
@@ -11,9 +11,21 @@ import { ContentPageCopyProvider } from '@/components/content-page-copy-context'
 import { ACCENTS } from '@/lib/accents';
 import './globals.css';
 
+export const viewport: Viewport = {
+	themeColor: '#221f22',
+};
+
 export const metadata: Metadata = {
 	title: 'PartFiles',
 	description: 'File management for partman.dev',
+	appleWebApp: {
+		capable: true,
+		statusBarStyle: 'black-translucent',
+		title: 'PartFiles',
+	},
+	icons: {
+		apple: '/icons/apple-touch-icon.png',
+	},
 };
 
 /**
@@ -25,6 +37,7 @@ const accentInitScript = `(function(){try{var a=localStorage.getItem("accent");v
 )};if(a&&m[a]){document.documentElement.style.setProperty("--accent-light",m[a][0]);document.documentElement.style.setProperty("--accent-dark",m[a][1])};}catch(e){}})()`;
 
 import { Footer } from '@/components/footer';
+import { PwaRegister } from '@/components/pwa-register';
 
 export default function RootLayout({
 	children,
@@ -49,6 +62,7 @@ export default function RootLayout({
 											<Footer />
 										</div>
 										<KeyboardShortcuts />
+										<PwaRegister />
 										<Toaster />
 									</TooltipProvider>
 								</ContentPageCopyProvider>

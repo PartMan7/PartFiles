@@ -39,6 +39,10 @@ export const authConfig: NextAuthConfig = {
 
 			// Public paths (cron is protected by its own secret header check)
 			if (
+				pathname === '/offline' ||
+				pathname === '/sw.js' ||
+				pathname === '/manifest.webmanifest' ||
+				pathname.startsWith('/icons/') ||
 				pathname.startsWith('/login') ||
 				pathname.startsWith('/signup') ||
 				pathname.startsWith('/invite') ||
