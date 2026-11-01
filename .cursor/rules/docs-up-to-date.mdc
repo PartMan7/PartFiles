@@ -1,0 +1,18 @@
+---
+description: Keep docs and the OpenAPI spec in sync with code changes
+alwaysApply: true
+---
+
+# Keep documentation current
+
+Update docs in the same change as the code. Do not defer.
+
+- API route change (`src/app/api/**`: path, method, auth/scope, request body, query params, response shape, status codes): update `public/openapi.json`. Document every response with its status code and a JSON schema (reuse `components.schemas`), including error responses.
+- New or removed endpoint: add or remove it in `public/openapi.json`, with tags and security.
+- Auth, scopes, token behavior: update the `info.description` in `public/openapi.json`.
+- Deploy, env var, or infra change: update `DEPLOY.md` and `.env.example`.
+- User-visible feature or setup change: update `README.md`.
+- Keep the `/openapi.json` pointer comment for agents in `src/app/layout.tsx`.
+- After editing `public/openapi.json`, run `npx prettier --write public/openapi.json` and confirm it parses.
+
+Docs edits count as in-scope for the PartCode scope gate.

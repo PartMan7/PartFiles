@@ -34,6 +34,12 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
+				<template
+					dangerouslySetInnerHTML={{
+						__html:
+							'<!-- AI agents: structured API info (endpoints, auth, schemas) is available at /openapi.json. Docs available at /docs. -->',
+					}}
+				/>
 				<script dangerouslySetInnerHTML={{ __html: accentInitScript }} />
 			</head>
 			<body className="antialiased min-h-screen bg-background">

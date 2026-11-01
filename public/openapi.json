@@ -47,10 +47,42 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Token is valid"
+						"description": "Token is valid",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"valid": {
+											"type": "boolean"
+										},
+										"username": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						}
 					},
-					"400": {
-						"description": "Invalid token"
+					"404": {
+						"description": "Invalid invite link",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"410": {
+						"description": "Invite already used or expired",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			},
@@ -86,7 +118,52 @@
 				},
 				"responses": {
 					"200": {
-						"description": "Account activated successfully"
+						"description": "Account activated successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"success": {
+											"type": "boolean"
+										},
+										"username": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Missing or invalid password",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Invalid invite link",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"410": {
+						"description": "Invite already used or expired",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -119,7 +196,14 @@
 						}
 					},
 					"410": {
-						"description": "Content has expired"
+						"description": "Content has expired",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -141,10 +225,35 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Content served"
+						"description": "Content served",
+						"content": {
+							"*/*": {
+								"schema": {
+									"type": "string",
+									"format": "binary"
+								}
+							}
+						}
 					},
 					"404": {
-						"description": "Slug not found"
+						"description": "Slug not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"410": {
+						"description": "Content has expired",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -243,13 +352,58 @@
 				},
 				"responses": {
 					"200": {
-						"description": "File uploaded successfully"
+						"description": "Uploaded. Single file returns `content`; multiple files return `contents`.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"success": {
+											"type": "boolean"
+										},
+										"content": {
+											"$ref": "#/components/schemas/UploadResult"
+										},
+										"contents": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/UploadResult"
+											}
+										}
+									}
+								}
+							}
+						}
 					},
 					"401": {
-						"description": "Unauthorized"
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					},
 					"403": {
-						"description": "Forbidden"
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input or storage limit exceeded",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -285,7 +439,68 @@
 				},
 				"responses": {
 					"200": {
-						"description": "File uploaded"
+						"description": "Uploaded. Single file returns `content`; multiple files return `contents`.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"success": {
+											"type": "boolean"
+										},
+										"content": {
+											"$ref": "#/components/schemas/UploadResult"
+										},
+										"contents": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/UploadResult"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden: admin only",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Short slug collision",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -297,7 +512,32 @@
 				"description": "Returns a list of all users in the system. **Requires Admin role.** Bearer scope: `user`.",
 				"responses": {
 					"200": {
-						"description": "List of users"
+						"description": "List of users",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"users": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/User"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -337,7 +577,52 @@
 				},
 				"responses": {
 					"201": {
-						"description": "User created"
+						"description": "User created. `inviteUrl` is present only in invite mode.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"user": {
+											"$ref": "#/components/schemas/User"
+										},
+										"inviteUrl": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Username already taken",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -363,7 +648,39 @@
 				],
 				"responses": {
 					"200": {
-						"description": "User details"
+						"description": "User details",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"user": {
+											"$ref": "#/components/schemas/User"
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "User not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			},
@@ -399,7 +716,59 @@
 				},
 				"responses": {
 					"200": {
-						"description": "User updated"
+						"description": "User updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"user": {
+											"$ref": "#/components/schemas/User"
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "User not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Username already taken",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			},
@@ -418,7 +787,44 @@
 				],
 				"responses": {
 					"200": {
-						"description": "User deleted"
+						"description": "User deleted",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Success"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Cannot delete your own account",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "User not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -448,13 +854,42 @@
 				],
 				"responses": {
 					"200": {
-						"description": "List of content"
+						"description": "List of content",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"content": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/Content"
+											}
+										}
+									}
+								}
+							}
+						}
 					},
 					"400": {
-						"description": "Invalid uploader filter"
+						"description": "Invalid uploader filter",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					},
 					"401": {
-						"description": "Not authenticated"
+						"description": "Not authenticated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				},
 				"security": [
@@ -480,7 +915,39 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Content details"
+						"description": "Content details",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"content": {
+											"$ref": "#/components/schemas/Content"
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Content not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			},
@@ -529,7 +996,59 @@
 				},
 				"responses": {
 					"200": {
-						"description": "Content updated"
+						"description": "Content updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"content": {
+											"$ref": "#/components/schemas/Content"
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid slug",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Content not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Slug collision",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			},
@@ -548,7 +1067,34 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Content deleted"
+						"description": "Content deleted",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Success"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Content not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -560,7 +1106,32 @@
 				"description": "Returns a list of directories allowed for storage. **Requires Admin role.**",
 				"responses": {
 					"200": {
-						"description": "List of directories"
+						"description": "List of directories",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"directories": {
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -626,7 +1197,24 @@
 						}
 					},
 					"403": {
-						"description": "Guest"
+						"description": "Guest",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			},
@@ -665,19 +1253,95 @@
 				},
 				"responses": {
 					"201": {
-						"description": "Created; contains `token` (shown once) and `info`"
+						"description": "Created; `token` is shown once",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"token": {
+											"type": "string"
+										},
+										"info": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"name": {
+													"type": "string"
+												},
+												"prefix": {
+													"type": "string"
+												},
+												"scopes": {
+													"type": "array",
+													"items": {
+														"type": "string",
+														"enum": ["me", "upload", "user"]
+													}
+												},
+												"expiresAt": {
+													"type": "string",
+													"format": "date-time",
+													"nullable": true
+												}
+											}
+										}
+									}
+								}
+							}
+						}
 					},
 					"400": {
-						"description": "Invalid input"
+						"description": "Invalid input",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					},
 					"403": {
-						"description": "Guest, or scope not grantable"
+						"description": "Guest, or scope not grantable",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					},
 					"409": {
-						"description": "Active token limit"
+						"description": "Active token limit",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					},
 					"429": {
-						"description": "Rate limited"
+						"description": "Rate limited",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -698,10 +1362,24 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Revoked"
+						"description": "Revoked",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Success"
+								}
+							}
+						}
 					},
 					"404": {
-						"description": "Not found"
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -713,6 +1391,161 @@
 				"type": "http",
 				"scheme": "bearer",
 				"description": "Token from /tokens; scope required per endpoint."
+			}
+		},
+		"schemas": {
+			"Error": {
+				"type": "object",
+				"properties": {
+					"error": {
+						"type": "string"
+					}
+				}
+			},
+			"Success": {
+				"type": "object",
+				"properties": {
+					"success": {
+						"type": "boolean"
+					}
+				}
+			},
+			"User": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"username": {
+						"type": "string"
+					},
+					"role": {
+						"type": "string",
+						"enum": ["guest", "uploader", "admin"]
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"_count": {
+						"type": "object",
+						"properties": {
+							"content": {
+								"type": "integer"
+							}
+						}
+					}
+				}
+			},
+			"Content": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"filename": {
+						"type": "string"
+					},
+					"originalFilename": {
+						"type": "string"
+					},
+					"directory": {
+						"type": "string",
+						"nullable": true
+					},
+					"fileSize": {
+						"type": "integer"
+					},
+					"fileExtension": {
+						"type": "string"
+					},
+					"mimeType": {
+						"type": "string"
+					},
+					"expiresAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"hasPreview": {
+						"type": "boolean"
+					},
+					"uploadedBy": {
+						"type": "object",
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"username": {
+								"type": "string"
+							},
+							"role": {
+								"type": "string"
+							}
+						}
+					},
+					"shortSlugs": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"slug": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			},
+			"UploadResult": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"filename": {
+						"type": "string"
+					},
+					"directory": {
+						"type": "string",
+						"nullable": true,
+						"description": "Admin upload only"
+					},
+					"shortSlugs": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "Admin upload only"
+					},
+					"size": {
+						"type": "integer"
+					},
+					"expiresAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
+					"url": {
+						"type": "string"
+					},
+					"shortUrl": {
+						"type": "string",
+						"nullable": true,
+						"description": "Admin upload only"
+					},
+					"rawUrl": {
+						"type": "string"
+					}
+				}
 			}
 		}
 	}
